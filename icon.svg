@@ -1,0 +1,170 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="512" height="512" viewBox="0 0 512 512">
+  <defs>
+    <radialGradient id="bgGrad" cx="50%" cy="50%" r="50%">
+      <stop offset="0%" style="stop-color:#1a0a3a;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#050510;stop-opacity:1" />
+    </radialGradient>
+    <radialGradient id="glowBlue" cx="50%" cy="50%" r="50%">
+      <stop offset="0%" style="stop-color:#00d4ff;stop-opacity:0.6" />
+      <stop offset="100%" style="stop-color:#00d4ff;stop-opacity:0" />
+    </radialGradient>
+    <radialGradient id="glowOrange" cx="50%" cy="50%" r="50%">
+      <stop offset="0%" style="stop-color:#ff8800;stop-opacity:0.5" />
+      <stop offset="100%" style="stop-color:#ff8800;stop-opacity:0" />
+    </radialGradient>
+    <filter id="glow">
+      <feGaussianBlur stdDeviation="8" result="coloredBlur"/>
+      <feMerge>
+        <feMergeNode in="coloredBlur"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+    <filter id="strongGlow">
+      <feGaussianBlur stdDeviation="14" result="coloredBlur"/>
+      <feMerge>
+        <feMergeNode in="coloredBlur"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+  </defs>
+
+  <!-- Rounded background -->
+  <rect width="512" height="512" rx="90" ry="90" fill="url(#bgGrad)"/>
+
+  <!-- Grid lines -->
+  <g opacity="0.07" stroke="#00aaff" stroke-width="1">
+    <line x1="0" y1="128" x2="512" y2="128"/>
+    <line x1="0" y1="256" x2="512" y2="256"/>
+    <line x1="0" y1="384" x2="512" y2="384"/>
+    <line x1="128" y1="0" x2="128" y2="512"/>
+    <line x1="256" y1="0" x2="256" y2="512"/>
+    <line x1="384" y1="0" x2="384" y2="512"/>
+  </g>
+
+  <!-- Outer glow rings -->
+  <circle cx="256" cy="220" r="160" fill="url(#glowBlue)" opacity="0.5"/>
+  <circle cx="256" cy="220" r="110" fill="url(#glowBlue)" opacity="0.4"/>
+
+  <!-- Magnet field arc lines -->
+  <g filter="url(#glow)" opacity="0.7">
+    <path d="M 110 120 Q 256 20 402 120" fill="none" stroke="#00d4ff" stroke-width="3" stroke-dasharray="8,5"/>
+    <path d="M 90 150 Q 256 30 422 150" fill="none" stroke="#00aacc" stroke-width="2" stroke-dasharray="6,6" opacity="0.5"/>
+    <path d="M 130 95 Q 256 10 382 95" fill="none" stroke="#00eeff" stroke-width="2" stroke-dasharray="5,7" opacity="0.4"/>
+  </g>
+
+  <!-- U-shaped magnet body shadow -->
+  <rect x="138" y="155" width="82" height="180" rx="8" fill="#000022" opacity="0.6"/>
+  <rect x="292" y="155" width="82" height="180" rx="8" fill="#000022" opacity="0.6"/>
+  <rect x="138" y="295" width="236" height="60" rx="8" fill="#000022" opacity="0.6"/>
+
+  <!-- U-shaped magnet - left arm -->
+  <rect x="135" y="150" width="82" height="180" rx="10" fill="#1a2a4a"/>
+  <rect x="135" y="150" width="82" height="180" rx="10" fill="none" stroke="#2255aa" stroke-width="2"/>
+  <!-- Left arm inner shine -->
+  <rect x="140" y="155" width="18" height="165" rx="5" fill="#ffffff" opacity="0.08"/>
+
+  <!-- U-shaped magnet - right arm -->
+  <rect x="295" y="150" width="82" height="180" rx="10" fill="#1a2a4a"/>
+  <rect x="295" y="150" width="82" height="180" rx="10" fill="none" stroke="#2255aa" stroke-width="2"/>
+  <!-- Right arm inner shine -->
+  <rect x="300" y="155" width="18" height="165" rx="5" fill="#ffffff" opacity="0.08"/>
+
+  <!-- Bottom connector -->
+  <rect x="135" y="295" width="242" height="62" rx="10" fill="#1a2a4a"/>
+  <rect x="135" y="295" width="242" height="62" rx="10" fill="none" stroke="#2255aa" stroke-width="2"/>
+
+  <!-- Red pole (North) -->
+  <rect x="135" y="150" width="82" height="62" rx="10" fill="#cc1122"/>
+  <rect x="135" y="150" width="82" height="62" rx="10" fill="none" stroke="#ff3344" stroke-width="2"/>
+  <!-- N label glow -->
+  <circle cx="176" cy="181" r="24" fill="#ff0022" opacity="0.3" filter="url(#glow)"/>
+  <text x="176" y="191" text-anchor="middle" font-family="Arial Black, sans-serif" font-size="28" font-weight="900" fill="#ffffff" filter="url(#glow)">N</text>
+
+  <!-- Blue pole (South) -->
+  <rect x="295" y="150" width="82" height="62" rx="10" fill="#1133cc"/>
+  <rect x="295" y="150" width="82" height="62" rx="10" fill="none" stroke="#3355ff" stroke-width="2"/>
+  <!-- S label glow -->
+  <circle cx="336" cy="181" r="24" fill="#0022ff" opacity="0.3" filter="url(#glow)"/>
+  <text x="336" y="191" text-anchor="middle" font-family="Arial Black, sans-serif" font-size="28" font-weight="900" fill="#ffffff" filter="url(#glow)">S</text>
+
+  <!-- Center glow orb -->
+  <circle cx="256" cy="230" r="28" fill="#001133" opacity="0.8"/>
+  <circle cx="256" cy="230" r="22" fill="#00d4ff" opacity="0.9" filter="url(#strongGlow)"/>
+  <circle cx="256" cy="230" r="14" fill="#aaffff"/>
+  <circle cx="248" cy="222" r="5" fill="#ffffff" opacity="0.8"/>
+
+  <!-- Electric field lines radiating out -->
+  <g filter="url(#glow)">
+    <line x1="256" y1="202" x2="256" y2="165" stroke="#00d4ff" stroke-width="2.5" opacity="0.9"/>
+    <line x1="280" y1="210" x2="305" y2="182" stroke="#00d4ff" stroke-width="2" opacity="0.8"/>
+    <line x1="232" y1="210" x2="207" y2="182" stroke="#00d4ff" stroke-width="2" opacity="0.8"/>
+    <line x1="286" y1="230" x2="320" y2="230" stroke="#00d4ff" stroke-width="2" opacity="0.7"/>
+    <line x1="226" y1="230" x2="192" y2="230" stroke="#00d4ff" stroke-width="2" opacity="0.7"/>
+    <line x1="278" y1="250" x2="300" y2="272" stroke="#00d4ff" stroke-width="1.5" opacity="0.6"/>
+    <line x1="234" y1="250" x2="212" y2="272" stroke="#00d4ff" stroke-width="1.5" opacity="0.6"/>
+    <line x1="256" y1="258" x2="256" y2="288" stroke="#00d4ff" stroke-width="1.5" opacity="0.6"/>
+  </g>
+
+  <!-- Small robot/thief character being attracted -->
+  <g transform="translate(380, 290)" filter="url(#glow)">
+    <!-- Body -->
+    <rect x="-18" y="-22" width="36" height="30" rx="5" fill="#8888aa"/>
+    <!-- Visor -->
+    <rect x="-12" y="-18" width="24" height="10" rx="3" fill="#00d4ff" opacity="0.9"/>
+    <!-- Chest glow -->
+    <circle cx="0" cy="-4" r="5" fill="#00d4ff" opacity="0.7"/>
+    <!-- Legs -->
+    <rect x="-12" y="8" width="10" height="12" rx="3" fill="#666688"/>
+    <rect x="2" y="8" width="10" height="12" rx="3" fill="#666688"/>
+    <!-- Arms -->
+    <rect x="-24" y="-16" width="8" height="18" rx="3" fill="#7777aa"/>
+    <rect x="16" y="-16" width="8" height="18" rx="3" fill="#7777aa"/>
+  </g>
+
+  <!-- Gold coins scattered -->
+  <g filter="url(#glow)">
+    <!-- Coin 1 -->
+    <circle cx="420" cy="180" r="18" fill="#ffcc00"/>
+    <circle cx="420" cy="180" r="13" fill="#ffee44"/>
+    <circle cx="414" cy="174" r="4" fill="#ffffff" opacity="0.5"/>
+
+    <!-- Coin 2 -->
+    <circle cx="95" cy="200" r="15" fill="#ffcc00"/>
+    <circle cx="95" cy="200" r="11" fill="#ffee44"/>
+    <circle cx="90" cy="195" r="3" fill="#ffffff" opacity="0.5"/>
+
+    <!-- Coin 3 -->
+    <circle cx="440" cy="340" r="13" fill="#ffcc00" opacity="0.8"/>
+    <circle cx="440" cy="340" r="9" fill="#ffee44" opacity="0.8"/>
+  </g>
+
+  <!-- Laser beam hazard -->
+  <g opacity="0.8">
+    <rect x="70" y="380" width="140" height="8" rx="4" fill="#ff1111"/>
+    <rect x="70" y="382" width="140" height="4" rx="2" fill="#ff8888"/>
+    <circle cx="70" cy="384" r="10" fill="#880000"/>
+    <circle cx="70" cy="384" r="6" fill="#ff2222" filter="url(#glow)"/>
+    <circle cx="210" cy="384" r="10" fill="#880000"/>
+    <circle cx="210" cy="384" r="6" fill="#ff2222" filter="url(#glow)"/>
+  </g>
+
+  <!-- Title text -->
+  <text x="256" y="448" text-anchor="middle"
+    font-family="Arial Black, Impact, sans-serif"
+    font-size="52" font-weight="900"
+    fill="#00d4ff"
+    filter="url(#glow)"
+    letter-spacing="2">MAGNET</text>
+  <text x="256" y="496" text-anchor="middle"
+    font-family="Arial Black, Impact, sans-serif"
+    font-size="44" font-weight="900"
+    fill="#ffffff"
+    opacity="0.95"
+    letter-spacing="6">SHIFT</text>
+
+  <!-- Corner decorations -->
+  <circle cx="60" cy="60" r="8" fill="#00d4ff" opacity="0.4"/>
+  <circle cx="452" cy="60" r="8" fill="#00d4ff" opacity="0.4"/>
+  <circle cx="60" cy="452" r="8" fill="#ff4444" opacity="0.4"/>
+  <circle cx="452" cy="452" r="8" fill="#ff4444" opacity="0.4"/>
+</svg>

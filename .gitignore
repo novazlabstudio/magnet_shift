@@ -1,0 +1,9 @@
+# Release signing keystore - never commit, back up separately
+keystore/
+
+# Godot
+.godot/
+android/build/
+
+# Editor temp files
+*.tmp

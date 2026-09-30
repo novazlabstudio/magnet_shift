@@ -1,0 +1,8 @@
+[gd_scene format=3 uid="uid://cpj4jf706h5lw"]
+
+[ext_resource type="Script" uid="uid://b4uiyeodm180h" path="res://scripts/GameManager.gd" id="1"]
+
+[node name="Level1" type="Node2D" unique_id=63775212]
+script = ExtResource("1")
+next_level_path = "res://scenes/Level2.tscn"
+level_number = null
