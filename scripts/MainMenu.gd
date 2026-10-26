@@ -201,16 +201,18 @@ func _build():
 	ui.add_child(hero_title)
 
 	# ── Hero kartlar ──
-	var hero_names = ["CYBORG", "PINK", "SHADOW", "MECH"]
-	var hero_colors = [Color(0.0, 0.83, 1.0), Color(1.0, 0.4, 0.7), Color(0.6, 0.1, 0.9), Color(0.5, 1.0, 0.1)]
-	var hero_locked = [false, false, max_lvl < 5, max_lvl < 10]
+	var hero_names = ["CYBORG", "PINK", "SHADOW", "MECH", "BLAZE"]
+	var hero_colors = [Color(0.0, 0.83, 1.0), Color(1.0, 0.4, 0.7), Color(0.6, 0.1, 0.9), Color(0.5, 1.0, 0.1), Color(1.0, 0.45, 0.05)]
+	# BLAZE level ile değil, 3 ödüllü reklamla açılır
+	var hero_locked = [false, false, max_lvl < 5, max_lvl < 10, not HeroManager.is_blaze_unlocked()]
+	var hero_count = hero_names.size()
 	var hero_y = 398.0
-	var card_w = 100.0
+	var card_w = 86.0
 	var card_h = 138.0
-	var gap = 8.0
-	var start_x = (480 - (card_w * 4 + gap * 3)) / 2
+	var gap = 5.0
+	var start_x = (480 - (card_w * hero_count + gap * (hero_count - 1))) / 2
 
-	for i in 4:
+	for i in hero_count:
 		var cx = start_x + i * (card_w + gap)
 		var is_locked = hero_locked[i]
 		var is_sel = HeroManager.get_hero() == i and not is_locked
@@ -240,7 +242,12 @@ func _build():
 		ui.add_child(hbot)
 
 		var hvis = Node2D.new()
-		hvis.set_script(_get_hero_preview_script(i))
+		if i == HeroManager.BLAZE_ID:
+			# BLAZE önizlemesi oyundaki çizimin kendisi (ayrı kopya tutmamak için)
+			hvis.set_script(load("res://scripts/PlayerVisual.gd"))
+			hvis.preview_hero = i
+		else:
+			hvis.set_script(_get_hero_preview_script(i))
 		hvis.position = Vector2(cx + card_w / 2, hero_y + 62)
 		if is_locked:
 			hvis.modulate = Color(0.3, 0.3, 0.3, 0.5)
@@ -254,12 +261,19 @@ func _build():
 			lock_lbl.add_theme_font_size_override("font_size", 28)
 			ui.add_child(lock_lbl)
 			var unlock_lbl = Label.new()
-			unlock_lbl.text = "Reach Lvl 5" if i == 2 else "Reach Lvl 10"
 			unlock_lbl.size = Vector2(card_w, 20)
 			unlock_lbl.position = Vector2(cx, hero_y + 72)
 			unlock_lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 			unlock_lbl.add_theme_font_size_override("font_size", 11)
-			unlock_lbl.add_theme_color_override("font_color", Color(0.5, 0.4, 0.6, 0.8))
+			if i == HeroManager.BLAZE_ID:
+				unlock_lbl.text = "🎬 %d/%d ADS" % [HeroManager.blaze_ads, HeroManager.BLAZE_ADS_REQUIRED]
+				unlock_lbl.add_theme_color_override("font_color", Color(1.0, 0.6, 0.2, 0.95))
+				# Dokunulabilir olduğunu belli etmek için kart çerçevesi turuncu
+				hframe.color = Color(1.0, 0.45, 0.05, 0.7)
+				hbot.color = Color(1.0, 0.45, 0.05, 0.7)
+			else:
+				unlock_lbl.text = "Reach Lvl 5" if i == 2 else "Reach Lvl 10"
+				unlock_lbl.add_theme_color_override("font_color", Color(0.5, 0.4, 0.6, 0.8))
 			ui.add_child(unlock_lbl)
 
 		var hlbl = Label.new()
@@ -292,10 +306,12 @@ func _build():
 		var locked = is_locked
 		hbtn.pressed.connect(func():
 			if locked:
+				if hero_idx == HeroManager.BLAZE_ID:
+					_show_blaze_unlock(ui)
 				return
 			HeroManager.save_hero(hero_idx)
 			HeroManager.selected_hero = hero_idx
-			for j in 4:
+			for j in hero_count:
 				if hero_locked[j]:
 					continue
 				var sel = j == hero_idx
@@ -766,6 +782,150 @@ func _process(delta):
 		var s = 1.0 + sin(time * 1.8) * 0.018
 		title_lbl.scale = Vector2(s, s)
 		title_lbl.pivot_offset = Vector2(240, 32)
+
+# BLAZE kilit açma penceresi: 3 ödüllü reklam, her biri ayrı ayrı oyuncunun isteğiyle izlenir.
+# İlerleme her ödülde kaydedilir; pencere kapatılsa da kaybolmaz.
+func _show_blaze_unlock(ui: CanvasLayer):
+	var required = HeroManager.BLAZE_ADS_REQUIRED
+	var accent = Color(1.0, 0.45, 0.05)
+
+	var overlay = ColorRect.new()
+	overlay.set_anchors_preset(Control.PRESET_FULL_RECT)
+	overlay.color = Color(0.0, 0.0, 0.0, 0.9)
+	ui.add_child(overlay)
+
+	var box = ColorRect.new()
+	box.size = Vector2(360, 470)
+	box.position = Vector2(60, 190)
+	box.color = Color(0.07, 0.03, 0.05, 0.98)
+	overlay.add_child(box)
+	var box_top = ColorRect.new()
+	box_top.size = Vector2(360, 3)
+	box_top.position = Vector2(60, 190)
+	box_top.color = accent
+	overlay.add_child(box_top)
+
+	var title = Label.new()
+	title.text = "🔥 UNLOCK BLAZE"
+	title.set_anchors_preset(Control.PRESET_TOP_WIDE)
+	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	title.position.y = 206
+	title.add_theme_font_size_override("font_size", 28)
+	title.add_theme_color_override("font_color", Color(1.0, 0.6, 0.15))
+	title.add_theme_color_override("font_shadow_color", Color(0.5, 0.1, 0.0, 0.8))
+	title.add_theme_constant_override("shadow_outline_size", 8)
+	overlay.add_child(title)
+
+	var preview = Node2D.new()
+	preview.set_script(load("res://scripts/PlayerVisual.gd"))
+	preview.preview_hero = HeroManager.BLAZE_ID
+	preview.position = Vector2(240, 330)
+	preview.scale = Vector2(2.2, 2.2)
+	overlay.add_child(preview)
+
+	var desc = Label.new()
+	desc.text = "Watch %d short ads to unlock\nBLAZE forever!" % required
+	desc.set_anchors_preset(Control.PRESET_TOP_WIDE)
+	desc.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	desc.position.y = 404
+	desc.add_theme_font_size_override("font_size", 18)
+	desc.add_theme_color_override("font_color", Color(0.85, 0.8, 0.8))
+	overlay.add_child(desc)
+
+	# 3 parçalı ilerleme çubuğu
+	var seg_w = 92.0
+	var seg_gap = 10.0
+	var seg_x = 240.0 - (seg_w * required + seg_gap * (required - 1)) / 2.0
+	var segments: Array = []
+	for k in required:
+		var seg = ColorRect.new()
+		seg.size = Vector2(seg_w, 14)
+		seg.position = Vector2(seg_x + k * (seg_w + seg_gap), 466)
+		overlay.add_child(seg)
+		segments.append(seg)
+
+	var prog_lbl = Label.new()
+	prog_lbl.set_anchors_preset(Control.PRESET_TOP_WIDE)
+	prog_lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	prog_lbl.position.y = 484
+	prog_lbl.add_theme_font_size_override("font_size", 16)
+	prog_lbl.add_theme_color_override("font_color", Color(1.0, 0.7, 0.3))
+	overlay.add_child(prog_lbl)
+
+	var status = Label.new()
+	status.set_anchors_preset(Control.PRESET_TOP_WIDE)
+	status.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	status.position.y = 510
+	status.add_theme_font_size_override("font_size", 14)
+	status.add_theme_color_override("font_color", Color(0.75, 0.75, 0.85, 0.9))
+	overlay.add_child(status)
+
+	var watch_bg = ColorRect.new()
+	watch_bg.size = Vector2(280, 60)
+	watch_bg.position = Vector2(100, 538)
+	watch_bg.color = Color(0.5, 0.18, 0.02, 1.0)
+	overlay.add_child(watch_bg)
+	var watch_btn = Button.new()
+	watch_btn.size = Vector2(280, 60)
+	watch_btn.position = Vector2(100, 538)
+	watch_btn.flat = true
+	watch_btn.add_theme_font_size_override("font_size", 22)
+	watch_btn.add_theme_color_override("font_color", Color(1.0, 0.85, 0.5))
+	overlay.add_child(watch_btn)
+
+	var close_btn = Button.new()
+	close_btn.text = "✕  CLOSE"
+	close_btn.size = Vector2(160, 44)
+	close_btn.position = Vector2(160, 608)
+	close_btn.flat = true
+	close_btn.add_theme_font_size_override("font_size", 16)
+	close_btn.add_theme_color_override("font_color", Color(0.6, 0.55, 0.6))
+	close_btn.pressed.connect(func(): overlay.queue_free())
+	overlay.add_child(close_btn)
+
+	var refresh = func():
+		var done = HeroManager.blaze_ads
+		for k in segments.size():
+			segments[k].color = accent if k < done else Color(0.25, 0.15, 0.15, 1.0)
+		prog_lbl.text = "%d / %d" % [done, required]
+		watch_btn.text = "🎬  WATCH AD  (%d/%d)" % [min(done + 1, required), required]
+
+	watch_btn.pressed.connect(func():
+		if not AdManager.is_rewarded_ad_ready():
+			status.text = "Ad is loading… try again in a moment"
+			AdManager.show_rewarded_ad(func(_earned: bool): pass)  # yüklemeyi tetikler
+			return
+		watch_btn.disabled = true
+		status.text = ""
+		AdManager.show_rewarded_ad(func(earned: bool):
+			# İlerleme pencere kapatılmış olsa bile kaydedilir
+			if earned:
+				HeroManager.add_blaze_ad()
+				AnalyticsManager.design_event("HeroUnlock:Blaze:Ad%d" % HeroManager.blaze_ads)
+				if HeroManager.is_blaze_unlocked():
+					AnalyticsManager.design_event("HeroUnlock:Blaze:Unlocked")
+					HeroManager.selected_hero = HeroManager.BLAZE_ID
+					HeroManager.save_hero(HeroManager.BLAZE_ID)
+			if not is_instance_valid(overlay):
+				return
+			watch_btn.disabled = false
+			refresh.call()
+			if HeroManager.is_blaze_unlocked():
+				status.text = "🔥 BLAZE UNLOCKED!"
+				status.add_theme_color_override("font_color", Color(1.0, 0.8, 0.2))
+				watch_btn.visible = false
+				watch_bg.visible = false
+				get_tree().create_timer(1.3).timeout.connect(func(): get_tree().reload_current_scene())
+			elif earned:
+				var left = required - HeroManager.blaze_ads
+				status.text = "Nice! %d more to go" % left
+			else:
+				status.text = "Watch the whole ad to count it"
+		)
+	)
+
+	refresh.call()
+	ScreenUtil.shift_children(overlay, ScreenUtil.center_offset(self))
 
 func _show_leaderboard(ui: CanvasLayer):
 	var overlay = ColorRect.new()

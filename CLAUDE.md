@@ -38,3 +38,10 @@ GDScript'te (Godot 4) aynı fonksiyon içindeki iki ayrı lambda, dışarıdaki 
 ## Analitik
 - `AnalyticsManager` Complete/Fail olaylarında gerçek `attempt_num` gönderir (`user://ga_attempts.json`, Complete'te sıfırlanır); `os_version` cihazdan okunur.
 - Testlerde GameAnalytics'e gerçek olay gitmemesi için autoload'u stub ile değiştir.
+
+## Kahramanlar
+- 0=Cyborg, 1=Pink, 2=Shadow (Lvl 5), 3=Mech (Lvl 10), 4=Blaze. Çizimler `PlayerVisual.gd`; menüdeki 0–3 önizlemeleri `MainMenu.gd::_get_hero_preview_script` içinde ayrı kopya, Blaze ise doğrudan `PlayerVisual` (`preview_hero`) kullanıyor.
+- **Blaze 3 ödüllü reklamla açılır** (`HeroManager.BLAZE_ADS_REQUIRED`, ilerleme `user://blaze_ads.dat`). Her reklam oyuncunun ayrı dokunuşuyla başlar, ödül her izlemede kaydedilir (AdMob kurallarına uygun: isteğe bağlı, ödül önceden açıkça yazılı). Pencere: `MainMenu.gd::_show_blaze_unlock`.
+- Şimdilik ExtraLife ile aynı rewarded ad unit kullanılıyor; AdMob'da ayrı bir "HeroUnlock" unit'i açılırsa raporlar ayrışır.
+- GA Design olayları: `HeroUnlock:Blaze:Ad1..Ad3`, `HeroUnlock:Blaze:Unlocked` — kaç kişinin hangi adımda bıraktığı görülebilir.
+- Yeni kahraman eklerken: `HeroManager` clamp sınırı, `GameManager` içindeki `hero_names` (3 yer), `PlayerVisual._draw_dead` renk dizisi ve menü kart sayısı birlikte güncellenmeli.

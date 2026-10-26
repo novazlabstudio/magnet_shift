@@ -5,6 +5,7 @@
 - Uzun ekranlarda siyah bantlar kaldırıldı (`keep_width` + ortalama + çentik payı).
 - Game Over: reklam butonu ana eylem ("CONTINUE +3 ❤️", "keep your N coins"); "TRY AGAIN" → "START OVER".
 - Ölüm nedeni mesajı (ZAPPED / CAUGHT), müzik döngüsü kesintisiz, analitikte gerçek attempt_num.
+- 5. kahraman BLAZE: 3 ödüllü reklamla açılıyor.
 - Yeni `.aab` için `version/code=2`, `version/name=1.0.1`. Telefonda test edilip Alpha'ya yeni sürüm olarak yüklenmeli.
 
 Son güncelleme: 2026-09-30

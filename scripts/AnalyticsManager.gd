@@ -152,6 +152,14 @@ func level_fail(level: int, hero: String, coins: int):
 	event_queue.append(e)
 	_flush()
 
+# Serbest olay (ör. "HeroUnlock:Blaze:Ad1") — GA'da Design olayları altında görünür
+func design_event(event_id: String):
+	if not is_enabled: return
+	var e = _base_event("design")
+	e["event_id"] = event_id
+	event_queue.append(e)
+	_flush()
+
 func session_end():
 	if not is_enabled: return
 	var e = _base_event("session_end")

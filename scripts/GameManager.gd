@@ -304,7 +304,7 @@ func _build_level():
 	for g in d["guards"]:
 		scaled_guards.append({"pos": Vector2(g["pos"].x, g["pos"].y * scale_y - 20), "patrol": g["patrol"]})
 	_add_guards(scaled_guards)
-	var hero_names = ["Cyborg", "Pink", "Shadow", "Mech"]
+	var hero_names = ["Cyborg", "Pink", "Shadow", "Mech", "Blaze"]
 	AnalyticsManager.level_start(level_number, hero_names[HeroManager.get_hero()])
 
 func _build_obstacle_list(platforms: Array, exit_pos: Vector2) -> Array:
@@ -1164,7 +1164,7 @@ func _on_player_died():
 	if not level_active:
 		return
 	level_active = false
-	var hero_names = ["Cyborg", "Pink", "Shadow", "Mech"]
+	var hero_names = ["Cyborg", "Pink", "Shadow", "Mech", "Blaze"]
 	AnalyticsManager.level_fail(level_number, hero_names[HeroManager.get_hero()], coins_collected)
 	_deactivate_all_magnets()
 	LevelTransition.flash_death()
@@ -1186,7 +1186,7 @@ func _on_level_complete():
 	if not level_active:
 		return
 	level_active = false
-	var hero_names = ["Cyborg", "Pink", "Shadow", "Mech"]
+	var hero_names = ["Cyborg", "Pink", "Shadow", "Mech", "Blaze"]
 	var hero_name = hero_names[HeroManager.get_hero()]
 	AnalyticsManager.level_complete(level_number, hero_name, _calculate_stars(), coins_collected)
 	_deactivate_all_magnets()

@@ -4,10 +4,12 @@ var time: float = 0.0
 var is_dead: bool = false
 var is_pulled: bool = false
 var pull_intensity: float = 0.0
-var hero_id: int = 0  # 0=Cyborg, 1=Pink, 2=Shadow
+var hero_id: int = 0  # 0=Cyborg, 1=Pink, 2=Shadow, 3=Mech, 4=Blaze
+# Menü önizlemesi için: >= 0 ise seçili kahraman yerine bu çizilir
+var preview_hero: int = -1
 
 func _ready():
-	hero_id = HeroManager.get_hero()
+	hero_id = preview_hero if preview_hero >= 0 else HeroManager.get_hero()
 
 func _process(delta):
 	time += delta
@@ -31,6 +33,7 @@ func _draw():
 		1: _draw_pink()
 		2: _draw_shadow()
 		3: _draw_mech()
+		4: _draw_blaze()
 		_: _draw_cyborg()
 
 # ── CYBORG (orijinal mavi/gri) ────────────────────────────────────────────
@@ -360,7 +363,7 @@ func _draw_shadow():
 	draw_ellipse_approx(Vector2(0, 24), 14, 3, Color(0.3, 0.0, 0.5, 0.3 - pull_intensity * 0.1))
 # ── ÖLÜM ─────────────────────────────────────────────────────────────────────
 func _draw_dead():
-	var body_color = [Color(0.5, 0.15, 0.15), Color(0.6, 0.3, 0.4), Color(0.15, 0.05, 0.2), Color(0.1, 0.25, 0.1)][hero_id]
+	var body_color = [Color(0.5, 0.15, 0.15), Color(0.6, 0.3, 0.4), Color(0.15, 0.05, 0.2), Color(0.1, 0.25, 0.1), Color(0.55, 0.18, 0.04)][hero_id]
 	draw_rect(Rect2(-12, -8, 24, 30), body_color)
 	draw_rect(Rect2(-11, -24, 22, 18), body_color * 0.8)
 	draw_line(Vector2(-8, -22), Vector2(-2, -16), Color(1.0, 0.2, 0.2), 2.0)
@@ -475,6 +478,110 @@ func _draw_mech():
 
 	draw_ellipse_approx(Vector2(0, 24), 16, 3, Color(0.0, 0.2, 0.0, 0.3 - pull_intensity * 0.1))
 	
+# ── BLAZE (kızıl zırh, alev tepelik; 3 reklamla açılır) ───────────────────────
+func _draw_blaze():
+	var pulse = sin(time * 3.0) * 0.5 + 0.5
+	var flicker = sin(time * 13.0) * 0.5 + 0.5
+	var glow_size = 22 + pull_intensity * 12
+	var heat = 0.08 + pull_intensity * 0.28 + pulse * 0.05
+	var crimson = Color(0.62, 0.1, 0.08)
+	var dark = Color(0.26, 0.05, 0.05)
+	var orange = Color(1.0, 0.45, 0.05)
+	var yellow = Color(1.0, 0.88, 0.3)
+
+	# Aura
+	draw_circle(Vector2(0, -4), glow_size + 5, Color(1.0, 0.3, 0.0, heat * 0.4))
+	draw_circle(Vector2(0, -4), glow_size, Color(1.0, 0.55, 0.1, heat))
+
+	# Yukarı süzülen korlar (çekilirken çoğalır)
+	var ember_count = 5 + int(pull_intensity * 5)
+	for i in ember_count:
+		var phase = fmod(time * (0.8 + i * 0.13) + i * 0.37, 1.0)
+		var ex = sin(i * 2.3 + time * 2.0) * (10 + (i % 3) * 4)
+		var ey = 10 - phase * 46
+		var ea = (1.0 - phase) * (0.45 + pull_intensity * 0.45)
+		draw_circle(Vector2(ex, ey), 1.6 * (1.0 - phase) + 0.6, Color(1.0, 0.55 + 0.4 * (1.0 - phase), 0.1, ea))
+
+	# Ayak jetleri
+	var jet = 4 + pull_intensity * 9 + flicker * 3
+	for fx in [-6.5, 6.5]:
+		draw_colored_polygon(PackedVector2Array([Vector2(fx - 4, 24), Vector2(fx + 4, 24), Vector2(fx, 24 + jet)]), Color(1.0, 0.45, 0.0, 0.85))
+		draw_colored_polygon(PackedVector2Array([Vector2(fx - 2, 24), Vector2(fx + 2, 24), Vector2(fx, 24 + jet * 0.6)]), Color(1.0, 0.95, 0.5, 0.95))
+
+	# ── Bacaklar ──
+	_rrect(Vector2(-9, 8), Vector2(6, 12), 2.0, dark)
+	_rrect(Vector2(3, 8), Vector2(6, 12), 2.0, dark)
+	_rrect(Vector2(-11, 17), Vector2(9, 7), 2.5, crimson)
+	_rrect(Vector2(2, 17), Vector2(9, 7), 2.5, crimson)
+	_rrect(Vector2(-11, 21.5), Vector2(9, 2.5), 1.0, orange)
+	_rrect(Vector2(2, 21.5), Vector2(9, 2.5), 1.0, orange)
+
+	# ── Gövde ──
+	var torso_pts = PackedVector2Array([
+		Vector2(-13, -9), Vector2(13, -9),
+		Vector2(11, 3), Vector2(8, 11),
+		Vector2(-8, 11), Vector2(-11, 3),
+	])
+	draw_colored_polygon(torso_pts, crimson)
+	_rrect(Vector2(-13, -9), Vector2(26, 3), 1.5, Color(orange.r, orange.g, orange.b, 0.8))
+	draw_line(Vector2(-10, -6), Vector2(0, 4), Color(orange.r, orange.g, orange.b, 0.7), 2.0)
+	draw_line(Vector2(10, -6), Vector2(0, 4), Color(orange.r, orange.g, orange.b, 0.7), 2.0)
+
+	# Çekirdek: küçük alev
+	var core = 0.6 + pull_intensity * 0.4 + flicker * 0.2
+	draw_circle(Vector2(0, 4), 6.5, Color(1.0, 0.3, 0.0, core * 0.5))
+	_flame(Vector2(0, 8), 4.5, 10.0 + flicker * 2.0, Color(1.0, 0.5, 0.05, min(core, 1.0)))
+	_flame(Vector2(0, 8), 2.5, 6.0 + flicker * 1.5, Color(1.0, 0.95, 0.55, min(core, 1.0)))
+
+	# ── Omuzlar (alev uçlu) ──
+	for sx in [-14.0, 14.0]:
+		draw_circle(Vector2(sx, -8), 6.5, dark)
+		draw_circle(Vector2(sx, -9), 4.8, crimson)
+		var tip = 4.0 + flicker * 2.0 + pull_intensity * 3.0
+		_flame(Vector2(sx, -12), 3.0, tip, orange)
+
+	# ── Kollar ──
+	_rrect(Vector2(-21, -6), Vector2(7, 15), 3.0, crimson)
+	_rrect(Vector2(14, -6), Vector2(7, 15), 3.0, crimson)
+	draw_circle(Vector2(-17.5, 11), 4.5, dark)
+	draw_circle(Vector2(17.5, 11), 4.5, dark)
+	draw_circle(Vector2(-17.5, 11), 2.2, orange)
+	draw_circle(Vector2(17.5, 11), 2.2, orange)
+
+	# ── Kafa ──
+	_rrect(Vector2(-10, -26), Vector2(20, 18), 4.0, dark)
+	_rrect(Vector2(-10, -26), Vector2(20, 6), 3.0, crimson)
+
+	# Alev tepelik (anten yerine)
+	var crest = 1.0 + pull_intensity * 0.6
+	for k in 3:
+		var kx = -5.0 + k * 5.0
+		var kh = (8.0 + sin(time * 9.0 + k * 1.7) * 2.5 + (3.0 if k == 1 else 0.0)) * crest
+		_flame(Vector2(kx, -25), 3.2, kh, Color(1.0, 0.4, 0.0, 0.95))
+		_flame(Vector2(kx, -25), 1.6, kh * 0.6, Color(1.0, 0.9, 0.4, 0.95))
+
+	# Vizör: çekik, sarı gözler
+	_rrect(Vector2(-8, -22), Vector2(16, 8), 3.0, Color(0.06, 0.0, 0.0, 0.95))
+	var eye = 0.8 + pull_intensity * 0.2 + sin(time * 3) * 0.1
+	draw_line(Vector2(-6.5, -20), Vector2(-1.5, -17.5), Color(yellow.r, yellow.g, yellow.b, eye), 2.6)
+	draw_line(Vector2(6.5, -20), Vector2(1.5, -17.5), Color(yellow.r, yellow.g, yellow.b, eye), 2.6)
+	if pull_intensity > 0.3:
+		draw_circle(Vector2(-4, -18.5), 5.5, Color(1.0, 0.6, 0.0, pull_intensity * 0.25))
+		draw_circle(Vector2(4, -18.5), 5.5, Color(1.0, 0.6, 0.0, pull_intensity * 0.25))
+
+	draw_ellipse_approx(Vector2(0, 24), 14, 3, Color(0.2, 0.05, 0.0, 0.3 - pull_intensity * 0.1))
+
+# Tabanı base'de, ucu yukarıda damla biçimli alev
+func _flame(base: Vector2, half_w: float, h: float, color: Color):
+	draw_colored_polygon(PackedVector2Array([
+		base + Vector2(-half_w, 0),
+		base + Vector2(-half_w * 0.6, -h * 0.5),
+		base + Vector2(0, -h),
+		base + Vector2(half_w * 0.6, -h * 0.5),
+		base + Vector2(half_w, 0),
+		base + Vector2(0, half_w * 0.5),
+	]), color)
+
 func draw_ellipse_approx(center: Vector2, rx: float, ry: float, color: Color):
 	var pts = PackedVector2Array()
 	for i in 16:
