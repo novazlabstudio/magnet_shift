@@ -51,7 +51,7 @@ func _physics_process(delta):
 
 	velocity.y = 0
 
-	if wall_cooldown <= 0 and abs(global_position.x - last_reverse_x) >= MIN_TRAVEL_AFTER_REVERSE and _is_wall_ahead():
+	if wall_cooldown <= 0 and abs(global_position.x - last_reverse_x) >= MIN_TRAVEL_AFTER_REVERSE and (_is_wall_ahead() or not _is_floor_ahead() or _is_past_patrol_limit()):
 		direction = -direction
 		if visual and visual.has_method("set_direction"):
 			visual.set_direction(direction)
@@ -89,6 +89,21 @@ func _on_detection_body_entered(body):
 	if body.is_in_group("player"):
 		emit_signal("guard_caught_player")
 		body.die()
+
+# Platform kenarından düşmemek için önündeki zemini kontrol eder
+func _is_floor_ahead() -> bool:
+	var space = get_world_2d().direct_space_state
+	if not space:
+		return true
+	var from = global_position + Vector2(WALL_DETECT_DIST * direction, 0)
+	var to = from + Vector2(0, 32)
+	var params = PhysicsRayQueryParameters2D.create(from, to)
+	params.exclude = [self]
+	params.collision_mask = collision_mask
+	return space.intersect_ray(params).size() > 0
+
+func _is_past_patrol_limit() -> bool:
+	return (global_position.x - start_position.x) * direction >= patrol_distance
 
 func _is_wall_ahead() -> bool:
 	var space = get_world_2d().direct_space_state

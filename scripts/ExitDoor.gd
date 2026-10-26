@@ -22,11 +22,12 @@ func _on_body_entered(body):
 		_play_enter_animation(body)
 
 func _play_enter_animation(body):
-	var vis = get_node_or_null("Node2D")
+	var vis = get_node_or_null("Visual")
 	if vis and vis.has_method("play_open"):
 		vis.play_open()
 
-	body.freeze = true
+	# body_entered fizik sorgusu sırasında geliyor; freeze anında değiştirilemez
+	body.set_deferred("freeze", true)
 	body.linear_velocity = Vector2.ZERO
 
 	var target_pos = global_position + Vector2(0, 2)

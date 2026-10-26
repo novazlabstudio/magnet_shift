@@ -5,4 +5,4 @@
 [node name="Level1" type="Node2D" unique_id=63775212]
 script = ExtResource("1")
 next_level_path = "res://scenes/Level2.tscn"
-level_number = null
+level_number = 1

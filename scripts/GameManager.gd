@@ -260,14 +260,19 @@ func _build_level():
 	_add_walls()
 	var scaled_platforms = []
 	for p in d["platforms"]:
-		scaled_platforms.append(Vector4(p.x, p.y * scale_y, p.z, p.w))
+		# Level verisinde platform x'i SOL kenar (coin/guard'lar ortasına göre yerleştirilmiş);
+		# fizik ve çizim merkez beklediği için yarım genişlik ekleniyor
+		scaled_platforms.append(Vector4(p.x + p.z / 2.0, p.y * scale_y, p.z, p.w))
 	_add_platforms(scaled_platforms, d["pc"])
 	_add_player(Vector2(60, lh - 80))
 	var scaled_exit = Vector2(d["exit"].x, d["exit"].y * scale_y)
 	var scaled_obstacles = _build_obstacle_list(scaled_platforms, scaled_exit)
 	var scaled_magnets = []
 	for m in d["extra_magnets"]:
-		scaled_magnets.append(Vector2(m.x, m.y * scale_y))
+		# x=80/400'deki mıknatıs dizisi zaten level yüksekliğine göre (mutlak) yazılmış;
+		# tekrar ölçeklenirse zeminin altına düşüyor. Duvar mıknatısları (x=50/430) 854'lük tasarım koordinatında.
+		var is_absolute = m.x == 80.0 or m.x == 400.0
+		scaled_magnets.append(Vector2(m.x, m.y if is_absolute else m.y * scale_y))
 	_add_magnets(scaled_magnets, scaled_obstacles)
 	var scaled_coins = []
 	for c in d["coins"]:
@@ -565,6 +570,10 @@ func _add_magnets(extra: Array, obstacles: Array):
 		_make_magnet(_resolve_position(pos, obstacles, 24.0))
 
 func _make_magnet(pos: Vector2):
+	# Veride bazı mıknatıslar neredeyse üst üste düşüyor; yakındaki varsa ikincisini ekleme
+	for existing in magnets:
+		if existing.position.distance_to(pos) < 56.0:
+			return
 	var m = Node2D.new()
 	m.position = pos
 	m.add_to_group("magnet")
@@ -628,6 +637,7 @@ func _add_exit(pos: Vector2):
 	col.shape = shape
 	door.add_child(col)
 	var visual = Node2D.new()
+	visual.name = "Visual"
 	visual.set_script(load("res://scripts/ExitVisual.gd"))
 	visual.z_index = 1
 	door.add_child(visual)
@@ -678,6 +688,26 @@ func _setup_ui():
 	var ui = CanvasLayer.new()
 	ui.name = "UILayer"
 	add_child(ui)
+
+	# HUD arkasına üstten aşağı kararan bant: açık renkli level'lerde okunurluk ve
+	# HUD'un altına denk gelen kapı/platformlarla karışmaması için
+	var hud_grad = Gradient.new()
+	hud_grad.set_color(0, Color(0.0, 0.0, 0.02, 0.6))
+	hud_grad.set_color(1, Color(0.0, 0.0, 0.02, 0.0))
+	var hud_tex = GradientTexture2D.new()
+	hud_tex.gradient = hud_grad
+	hud_tex.fill_from = Vector2(0, 0)
+	hud_tex.fill_to = Vector2(0, 1)
+	hud_tex.width = 4
+	hud_tex.height = 64
+	var hud_bg = TextureRect.new()
+	hud_bg.texture = hud_tex
+	hud_bg.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+	hud_bg.stretch_mode = TextureRect.STRETCH_SCALE
+	hud_bg.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	hud_bg.set_anchors_and_offsets_preset(Control.PRESET_TOP_WIDE)
+	hud_bg.offset_bottom = 84
+	ui.add_child(hud_bg)
 
 	score_label = Label.new()
 	score_label.position = Vector2(12, 14)
@@ -737,9 +767,10 @@ func _setup_ui():
 	var lvl_color = Color(1.0, 0.9, 0.2, 1.0) if lum < 0.4 else Color(0.05, 0.05, 0.2, 1.0)
 	var lvl_shadow = Color(0.0, 0.0, 0.0, 0.8) if lum < 0.4 else Color(1.0, 1.0, 1.0, 0.6)
 
+	# Ses butonu x=148..192 aralığında; rozet onun sağından başlıyor
 	var lvl_badge = ColorRect.new()
 	lvl_badge.size = Vector2(130, 34)
-	lvl_badge.position = Vector2(175, 10)
+	lvl_badge.position = Vector2(200, 10)
 	lvl_badge.color = Color(lvl_color.r, lvl_color.g, lvl_color.b, 0.18)
 	ui.add_child(lvl_badge)
 
@@ -748,7 +779,7 @@ func _setup_ui():
 	var emoji = level_emojis[level_number - 1] if level_number <= 20 else "🎮"
 	lvl_lbl.text = "%s LVL %d" % [emoji, level_number]
 	lvl_lbl.size = Vector2(130, 34)
-	lvl_lbl.position = Vector2(175, 10)
+	lvl_lbl.position = Vector2(200, 10)
 	lvl_lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	lvl_lbl.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 	lvl_lbl.add_theme_font_size_override("font_size", 19)
@@ -763,7 +794,9 @@ func _setup_ui():
 	tap_hint.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	tap_hint.position.y = -50
 	tap_hint.add_theme_font_size_override("font_size", 18)
-	tap_hint.add_theme_color_override("font_color", Color(0.7, 0.7, 0.9, 0.8))
+	tap_hint.add_theme_color_override("font_color", Color(0.8, 0.8, 1.0, 0.95))
+	tap_hint.add_theme_color_override("font_outline_color", Color(0.0, 0.0, 0.1, 0.85))
+	tap_hint.add_theme_constant_override("outline_size", 5)
 	ui.add_child(tap_hint)
 
 	var result_panel = ColorRect.new()
@@ -1027,7 +1060,8 @@ func _input(event):
 			_deactivate_all_magnets()
 
 func _is_on_sound_button(screen_pos: Vector2) -> bool:
-	return screen_pos.x >= 96 and screen_pos.x <= 140 and screen_pos.y >= 14 and screen_pos.y <= 58
+	# SoundBtn ile aynı alan: position (148, 14), size 44x44
+	return screen_pos.x >= 148 and screen_pos.x <= 192 and screen_pos.y >= 14 and screen_pos.y <= 58
 
 func _find_nearest_magnet(screen_pos: Vector2) -> Node2D:
 	if not player or player.is_dead:
@@ -1061,7 +1095,8 @@ func _update_lives_ui():
 		return
 	var hearts = ""
 	for i in 5:
-		hearts += "❤️" if i < lives else "🖤"
+		# 🖤 koyu zeminde neredeyse görünmüyordu
+		hearts += "❤️" if i < lives else "🤍"
 	lives_label.text = hearts
 
 func _show_life_gained():
@@ -1123,7 +1158,8 @@ func _on_player_died():
 	if lives <= 0:
 		lives = 0
 		_save_lives(3)
-		var entries = _add_score_to_leaderboard(total_score, level_number)
+		# 0 puanlık oyunlar tabloyu doldurmasın
+		var entries = _add_score_to_leaderboard(total_score, level_number) if total_score > 0 else _load_leaderboard()
 		var is_new_record = entries.size() > 0 and entries[0]["score"] == total_score and total_score > 0
 		await get_tree().create_timer(0.6).timeout
 		_show_game_over(is_new_record)
@@ -1162,6 +1198,8 @@ func _show_result(success: bool, is_new_record: bool = false, stars: int = 0):
 	var panel = ui.get_node_or_null("ResultPanel")
 	if not panel:
 		return
+	# Arkadaki oyun alanını karart, panel öne çıksın
+	panel.color = Color(0.0, 0.0, 0.03, 0.6)
 	var top_line = panel.get_node_or_null("TopLine")
 	if top_line:
 		top_line.color = Color(0.0, 0.85, 1.0) if success else Color(1.0, 0.3, 0.3)
@@ -1214,7 +1252,7 @@ func _show_result(success: bool, is_new_record: bool = false, stars: int = 0):
 
 func _show_stars_animation(ui: CanvasLayer, stars: int):
 	var panel = ui.get_node_or_null("ResultPanel")
-	var star_x = [140.0, 230.0, 320.0]
+	var star_x = [150.0, 240.0, 330.0]
 	var star_y = [175.0, 160.0, 175.0]
 	var delays = [0.3, 0.6, 0.9]
 	for i in 3:
@@ -1407,7 +1445,8 @@ func _show_game_over(is_new_record: bool = false):
 	retry_bg2.color = Color(0.05, 0.15, 0.45, 1.0)
 	panel.add_child(retry_bg2)
 	var retry2 = Button.new()
-	retry2.text = "↩  TRY AGAIN"
+	# Bu buton Level 1'den başlatıyor; "TRY AGAIN" aynı level'i tekrar deniyormuş gibi okunuyordu
+	retry2.text = "🔁  START OVER"
 	retry2.size = Vector2(280, 60)
 	retry2.position = Vector2(100, btn_y + 74)
 	retry2.flat = true
