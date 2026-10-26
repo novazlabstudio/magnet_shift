@@ -1,5 +1,7 @@
 extends Node2D
 
+const ScreenUtil = preload("res://scripts/ScreenUtil.gd")
+
 var time: float = 0.0
 var play_btn: Button
 var title_lbl: Label
@@ -391,6 +393,13 @@ func _build():
 	sound_btn.pressed.connect(_on_sound_toggle)
 	ui.add_child(sound_btn)
 
+	# ── Uzun ekran: içerik ortalanır, üst butonlar en üstte (çentik payıyla) kalır ──
+	var top_bar = [lb_panel, lb_lbl, lb_btn, lv_panel, lv_lbl, lv_btn]
+	ScreenUtil.shift_children(ui, ScreenUtil.center_offset(self), top_bar)
+	var safe_top = ScreenUtil.safe_top(self)
+	for n in top_bar:
+		n.position.y += safe_top
+
 	# ── Onboarding (sadece ilk açılışta) ──
 	_show_onboarding_if_needed(ui)
 
@@ -514,6 +523,11 @@ func _show_onboarding(ui: CanvasLayer):
 		var nb = overlay.get_node_or_null("NextBtn")
 		if nb:
 			nb.text = "LET'S GO  ▶" if page == total_pages - 1 else "NEXT  ▶"
+
+	ScreenUtil.shift_children(overlay, ScreenUtil.center_offset(self), [skip_bg, skip_btn])
+	var ob_top = ScreenUtil.safe_top(self)
+	skip_bg.position.y += ob_top
+	skip_btn.position.y += ob_top
 
 	show_page.call(0)
 
@@ -850,6 +864,7 @@ func _show_leaderboard(ui: CanvasLayer):
 	close_btn.add_theme_color_override("font_color", Color(0.7, 0.5, 1.0))
 	close_btn.pressed.connect(func(): overlay.queue_free())
 	overlay.add_child(close_btn)
+	ScreenUtil.shift_children(overlay, ScreenUtil.center_offset(self))
 
 func _show_level_select(ui: CanvasLayer):
 	var max_lvl = _load_max_level()
@@ -860,10 +875,14 @@ func _show_level_select(ui: CanvasLayer):
 	ui.add_child(overlay)
 
 	var title = Label.new()
+	# Uzun ekranda liste aşağı uzar, CLOSE her zaman en altta kalır
+	var vh = ScreenUtil.viewport_height(self)
+	var top = ScreenUtil.safe_top(self)
+
 	title.text = "🗺️ SELECT LEVEL"
 	title.set_anchors_preset(Control.PRESET_TOP_WIDE)
 	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	title.position.y = 14
+	title.position.y = 14 + top
 	title.add_theme_font_size_override("font_size", 24)
 	title.add_theme_color_override("font_color", Color(0.3, 1.0, 0.5))
 	title.add_theme_color_override("font_shadow_color", Color(0.0, 0.3, 0.1, 0.8))
@@ -874,7 +893,7 @@ func _show_level_select(ui: CanvasLayer):
 	sub.text = "Reached: Level %d / 50" % max_lvl
 	sub.set_anchors_preset(Control.PRESET_TOP_WIDE)
 	sub.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	sub.position.y = 46
+	sub.position.y = 46 + top
 	sub.add_theme_font_size_override("font_size", 14)
 	sub.add_theme_color_override("font_color", Color(0.5, 0.8, 0.6, 0.8))
 	overlay.add_child(sub)
@@ -894,8 +913,8 @@ func _show_level_select(ui: CanvasLayer):
 	var start_x = (480 - total_w) / 2
 
 	var scroll = ScrollContainer.new()
-	scroll.size = Vector2(480, 726)
-	scroll.position = Vector2(0, 68)
+	scroll.size = Vector2(480, vh - 68 - top - 60)
+	scroll.position = Vector2(0, 68 + top)
 	scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
 	overlay.add_child(scroll)
 
@@ -972,18 +991,18 @@ func _show_level_select(ui: CanvasLayer):
 	# CLOSE butonu scroll dışında sabit altta
 	var close_bg = ColorRect.new()
 	close_bg.size = Vector2(200, 50)
-	close_bg.position = Vector2(140, 800)
+	close_bg.position = Vector2(140, vh - 54)
 	close_bg.color = Color(0.05, 0.15, 0.05, 1.0)
 	overlay.add_child(close_bg)
 	var close_line2 = ColorRect.new()
 	close_line2.size = Vector2(200, 3)
-	close_line2.position = Vector2(140, 800)
+	close_line2.position = Vector2(140, vh - 54)
 	close_line2.color = Color(0.3, 1.0, 0.4, 0.8)
 	overlay.add_child(close_line2)
 	var close_btn = Button.new()
 	close_btn.text = "✕  CLOSE"
 	close_btn.size = Vector2(200, 50)
-	close_btn.position = Vector2(140, 800)
+	close_btn.position = Vector2(140, vh - 54)
 	close_btn.flat = true
 	close_btn.add_theme_font_size_override("font_size", 18)
 	close_btn.add_theme_color_override("font_color", Color(0.3, 1.0, 0.5))
@@ -1264,25 +1283,28 @@ func _get_bg_script() -> GDScript:
 extends Node2D
 var time: float = 0.0
 var pts: Array = []
+func _h() -> float:
+	return get_viewport_rect().size.y
 func _ready():
 	for i in 50:
-		pts.append({"pos":Vector2(randf()*480,randf()*854),"vel":Vector2(randf_range(-15,15),randf_range(-35,-8)),"life":randf()*6.0,"max_life":randf_range(4.0,9.0),"size":randf_range(1.5,3.5),"hue":randf_range(0.55,0.72)})
+		pts.append({"pos":Vector2(randf()*480,randf()*_h()),"vel":Vector2(randf_range(-15,15),randf_range(-35,-8)),"life":randf()*6.0,"max_life":randf_range(4.0,9.0),"size":randf_range(1.5,3.5),"hue":randf_range(0.55,0.72)})
 func _process(delta):
 	time += delta
 	for p in pts:
 		p.life += delta
 		p.pos += p.vel * delta
 		if p.life >= p.max_life or p.pos.y < -5:
-			p.pos = Vector2(randf()*480, 860)
+			p.pos = Vector2(randf()*480, _h() + 6)
 			p.vel = Vector2(randf_range(-15,15),randf_range(-35,-8))
 			p.life = 0.0
 			p.max_life = randf_range(4.0,9.0)
 	queue_redraw()
 func _draw():
-	draw_rect(Rect2(0,0,480,854), Color(0.03,0.02,0.12))
+	var h = _h()
+	draw_rect(Rect2(0,0,480,h), Color(0.03,0.02,0.12))
 	for i in 8:
-		draw_line(Vector2(i*68,0),Vector2(i*68,854),Color(0.0,0.4,1.0,0.04))
-	for i in 13:
+		draw_line(Vector2(i*68,0),Vector2(i*68,h),Color(0.0,0.4,1.0,0.04))
+	for i in int(h / 68.0) + 1:
 		draw_line(Vector2(0,i*68),Vector2(480,i*68),Color(0.0,0.4,1.0,0.04))
 	for p in pts:
 		var a = sin(p.life/p.max_life*PI)*0.7

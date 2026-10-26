@@ -1,5 +1,7 @@
 extends Node2D
 
+const ScreenUtil = preload("res://scripts/ScreenUtil.gd")
+
 @export var next_level_path: String = ""
 @export var level_number: int = 1
 
@@ -23,6 +25,10 @@ var status_label: Label
 var retry_button: Button
 var next_button: Button
 var tap_hint: Label
+var sound_button: Button
+# Çentik payı (HUD'u aşağı iter) ve uzun ekranlarda panelleri ortalamak için dikey kayma
+var hud_top: float = 0.0
+var ui_dy: float = 0.0
 
 func get_level_data() -> Dictionary:
 	var levels = {
@@ -680,7 +686,6 @@ func _add_guard(pos: Vector2, patrol: float, guard_index: int = 0):
 	# Tip ata: çift index=0 (kırmızı), tek index=1 (mavi)
 	if gvis.has_method("set_type"):
 		gvis.set_type(guard_index % 2)
-	g.guard_caught_player.connect(_on_player_died)
 
 # ─── UI ──────────────────────────────────────────────────────────────────────
 
@@ -741,6 +746,7 @@ func _setup_ui():
 	)
 	ui.add_child(sound_btn)
 	ui.add_child(sound_vis)
+	sound_button = sound_btn
 
 	total_score_label = Label.new()
 	total_score_label.set_anchors_preset(Control.PRESET_TOP_RIGHT)
@@ -787,6 +793,12 @@ func _setup_ui():
 	lvl_lbl.add_theme_color_override("font_shadow_color", lvl_shadow)
 	lvl_lbl.add_theme_constant_override("shadow_outline_size", 3)
 	ui.add_child(lvl_lbl)
+
+	# Çentikli ekranlarda HUD'u güvenli alana indir
+	hud_top = ScreenUtil.safe_top(self)
+	for n in [score_label, sound_btn, sound_vis, total_score_label, lives_label, lvl_badge, lvl_lbl]:
+		n.position.y += hud_top
+	hud_bg.offset_bottom += hud_top
 
 	tap_hint = Label.new()
 	tap_hint.text = "TAP & HOLD to attract"
@@ -947,6 +959,10 @@ func _setup_ui():
 	)
 	result_panel.add_child(menu_btn)
 
+	# Panel 854'lük tasarıma göre yerleşik; uzun ekranlarda ortaya al
+	ui_dy = ScreenUtil.center_offset(self)
+	ScreenUtil.shift_children(result_panel, ui_dy)
+
 	_update_score_ui()
 
 func _get_sci_panel_script(accent: Color, w: float, h: float) -> GDScript:
@@ -1060,8 +1076,7 @@ func _input(event):
 			_deactivate_all_magnets()
 
 func _is_on_sound_button(screen_pos: Vector2) -> bool:
-	# SoundBtn ile aynı alan: position (148, 14), size 44x44
-	return screen_pos.x >= 148 and screen_pos.x <= 192 and screen_pos.y >= 14 and screen_pos.y <= 58
+	return sound_button != null and sound_button.get_global_rect().has_point(screen_pos)
 
 func _find_nearest_magnet(screen_pos: Vector2) -> Node2D:
 	if not player or player.is_dead:
@@ -1107,7 +1122,7 @@ func _show_life_gained():
 	lbl.text = "+❤️"
 	lbl.set_anchors_preset(Control.PRESET_TOP_RIGHT)
 	lbl.grow_horizontal = Control.GROW_DIRECTION_BEGIN
-	lbl.position = Vector2(-180, 40)
+	lbl.position = Vector2(-180, 40 + hud_top)
 	lbl.add_theme_font_size_override("font_size", 28)
 	lbl.add_theme_color_override("font_color", Color(1.0, 0.3, 0.3, 1.0))
 	lbl.add_theme_color_override("font_shadow_color", Color(0.0, 0.0, 0.0, 0.8))
@@ -1207,7 +1222,8 @@ func _show_result(success: bool, is_new_record: bool = false, stars: int = 0):
 	if icon_vis and icon_vis.has_method("set_success"):
 		icon_vis.set_success(success)
 	if status_label:
-		status_label.text = "LEVEL COMPLETE" if success else "CAUGHT"
+		var fail_text = "ZAPPED" if player and player.death_cause == "laser" else "CAUGHT"
+		status_label.text = "LEVEL COMPLETE" if success else fail_text
 		status_label.add_theme_color_override("font_color",
 			Color(0.3, 1.0, 0.6) if success else Color(1.0, 0.4, 0.4))
 	var sub_lbl = panel.get_node_or_null("SubLabel")
@@ -1225,7 +1241,7 @@ func _show_result(success: bool, is_new_record: bool = false, stars: int = 0):
 		record_lbl.text = "🥇 NEW RECORD!"
 		record_lbl.set_anchors_preset(Control.PRESET_TOP_WIDE)
 		record_lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-		record_lbl.position.y = 428
+		record_lbl.position.y = 428 + ui_dy
 		record_lbl.add_theme_font_size_override("font_size", 22)
 		record_lbl.add_theme_color_override("font_color", Color(1.0, 0.85, 0.0))
 		record_lbl.add_theme_color_override("font_shadow_color", Color(0.8, 0.4, 0.0, 0.8))
@@ -1259,7 +1275,7 @@ func _show_stars_animation(ui: CanvasLayer, stars: int):
 		var lbl = Label.new()
 		lbl.text = "⭐"
 		lbl.size = Vector2(48, 52)
-		lbl.position = Vector2(star_x[i] - 24, star_y[i])
+		lbl.position = Vector2(star_x[i] - 24, star_y[i] + ui_dy)
 		lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 		lbl.add_theme_font_size_override("font_size", 48)
 		if i >= stars:
@@ -1288,7 +1304,7 @@ func _spawn_star_particles(ui: CanvasLayer):
 		var p = Label.new()
 		p.text = "✨"
 		p.add_theme_font_size_override("font_size", randi_range(14, 28))
-		p.position = Vector2(randf_range(80, 400), randf_range(140, 220))
+		p.position = Vector2(randf_range(80, 400), randf_range(140, 220) + ui_dy)
 		p.modulate = Color(1.0, randf_range(0.7, 1.0), 0.0, 1.0)
 		ui.add_child(p)
 		var tween = p.create_tween()
@@ -1372,8 +1388,11 @@ func _show_game_over(is_new_record: bool = false):
 	lb_title.add_theme_color_override("font_color", Color(0.6, 0.6, 0.9, 0.9))
 	panel.add_child(lb_title)
 
+	# Kutu kayıt sayısı kadar uzar; tek kayıtta koca boş alan kalmasın
+	var entries = _load_leaderboard()
+	var lb_h = max(1, min(entries.size(), 5)) * 34 + 10
 	var lb_bg = ColorRect.new()
-	lb_bg.size = Vector2(360, 178)
+	lb_bg.size = Vector2(360, lb_h)
 	lb_bg.position = Vector2(60, 264)
 	lb_bg.color = Color(0.04, 0.04, 0.16, 0.95)
 	panel.add_child(lb_bg)
@@ -1384,7 +1403,6 @@ func _show_game_over(is_new_record: bool = false):
 	lb_top.color = Color(1.0, 0.8, 0.0, 0.6)
 	panel.add_child(lb_top)
 
-	var entries = _load_leaderboard()
 	var medals = ["🥇", "🥈", "🥉", "4.", "5."]
 	for i in min(entries.size(), 5):
 		var e = entries[i]
@@ -1418,60 +1436,25 @@ func _show_game_over(is_new_record: bool = false):
 		date_lbl.add_theme_color_override("font_color", Color(0.4, 0.4, 0.6, 0.7))
 		panel.add_child(date_lbl)
 
-	var btn_y = 456.0
-	var btn_bg = ColorRect.new()
-	btn_bg.size = Vector2(280, 60)
-	btn_bg.position = Vector2(100, btn_y)
-	btn_bg.color = Color(0.5, 0.05, 0.05, 1.0)
-	panel.add_child(btn_bg)
-	var btn = Button.new()
-	btn.text = "🏠  MAIN MENU"
-	btn.size = Vector2(280, 60)
-	btn.position = Vector2(100, btn_y)
-	btn.flat = true
-	btn.add_theme_font_size_override("font_size", 24)
-	btn.add_theme_color_override("font_color", Color(1.0, 0.5, 0.5))
-	btn.pressed.connect(func():
-		_save_total_score(0)
-		coins_since_last_life = 0
-		_save_lives(3)
-		get_tree().change_scene_to_file("res://scenes/MainMenu.tscn")
-	)
-	panel.add_child(btn)
-
-	var retry_bg2 = ColorRect.new()
-	retry_bg2.size = Vector2(280, 60)
-	retry_bg2.position = Vector2(100, btn_y + 74)
-	retry_bg2.color = Color(0.05, 0.15, 0.45, 1.0)
-	panel.add_child(retry_bg2)
-	var retry2 = Button.new()
-	# Bu buton Level 1'den başlatıyor; "TRY AGAIN" aynı level'i tekrar deniyormuş gibi okunuyordu
-	retry2.text = "🔁  START OVER"
-	retry2.size = Vector2(280, 60)
-	retry2.position = Vector2(100, btn_y + 74)
-	retry2.flat = true
-	retry2.add_theme_font_size_override("font_size", 24)
-	retry2.add_theme_color_override("font_color", Color(0.3, 0.7, 1.0))
-	retry2.pressed.connect(func():
-		_save_total_score(0)
-		coins_since_last_life = 0
-		_save_lives(3)
-		get_tree().change_scene_to_file("res://scenes/Level1.tscn")
-	)
-	panel.add_child(retry2)
-
+	# Ödüllü reklam ana eylem: en üstte, büyük ve nabız gibi atan.
+	# Level seçimiyle 3 canla zaten devam edilebildiği için reklamın asıl değeri
+	# puanı (coin) korumak; bunu butonun altında açıkça söylüyoruz.
+	var btn_y = 264.0 + lb_h + 24.0
 	var ad_bg = ColorRect.new()
-	ad_bg.size = Vector2(280, 60)
-	ad_bg.position = Vector2(100, btn_y + 148)
-	ad_bg.color = Color(0.1, 0.4, 0.08, 1.0)
+	ad_bg.size = Vector2(300, 68)
+	ad_bg.position = Vector2(90, btn_y)
+	ad_bg.color = Color(0.1, 0.45, 0.08, 1.0)
 	panel.add_child(ad_bg)
+	var ad_pulse = ad_bg.create_tween().set_loops()
+	ad_pulse.tween_property(ad_bg, "color", Color(0.16, 0.6, 0.12, 1.0), 0.6)
+	ad_pulse.tween_property(ad_bg, "color", Color(0.1, 0.45, 0.08, 1.0), 0.6)
 	var ad_btn = Button.new()
-	ad_btn.text = "🎬  WATCH AD: +3 ❤️"
-	ad_btn.size = Vector2(280, 60)
-	ad_btn.position = Vector2(100, btn_y + 148)
+	ad_btn.text = "🎬  CONTINUE  +3 ❤️"
+	ad_btn.size = Vector2(300, 68)
+	ad_btn.position = Vector2(90, btn_y)
 	ad_btn.flat = true
-	ad_btn.add_theme_font_size_override("font_size", 20)
-	ad_btn.add_theme_color_override("font_color", Color(0.5, 1.0, 0.4))
+	ad_btn.add_theme_font_size_override("font_size", 24)
+	ad_btn.add_theme_color_override("font_color", Color(0.75, 1.0, 0.65))
 	ad_btn.pressed.connect(func():
 		ad_btn.disabled = true
 		AdManager.show_rewarded_ad(func(earned: bool):
@@ -1487,6 +1470,61 @@ func _show_game_over(is_new_record: bool = false):
 		)
 	)
 	panel.add_child(ad_btn)
+
+	var ad_hint = Label.new()
+	if total_score > 0:
+		ad_hint.text = "Watch an ad · keep your %d coins" % total_score
+	else:
+		ad_hint.text = "Watch an ad · continue from Lvl %d" % level_number
+	ad_hint.set_anchors_preset(Control.PRESET_TOP_WIDE)
+	ad_hint.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	ad_hint.position.y = btn_y + 72
+	ad_hint.add_theme_font_size_override("font_size", 14)
+	ad_hint.add_theme_color_override("font_color", Color(0.6, 0.9, 0.55, 0.85))
+	panel.add_child(ad_hint)
+
+	var retry_bg2 = ColorRect.new()
+	retry_bg2.size = Vector2(280, 54)
+	retry_bg2.position = Vector2(100, btn_y + 104)
+	retry_bg2.color = Color(0.05, 0.15, 0.45, 1.0)
+	panel.add_child(retry_bg2)
+	var retry2 = Button.new()
+	# Bu buton Level 1'den başlatıyor; "TRY AGAIN" aynı level'i tekrar deniyormuş gibi okunuyordu
+	retry2.text = "🔁  START OVER"
+	retry2.size = Vector2(280, 54)
+	retry2.position = Vector2(100, btn_y + 104)
+	retry2.flat = true
+	retry2.add_theme_font_size_override("font_size", 20)
+	retry2.add_theme_color_override("font_color", Color(0.3, 0.7, 1.0))
+	retry2.pressed.connect(func():
+		_save_total_score(0)
+		coins_since_last_life = 0
+		_save_lives(3)
+		get_tree().change_scene_to_file("res://scenes/Level1.tscn")
+	)
+	panel.add_child(retry2)
+
+	var btn_bg = ColorRect.new()
+	btn_bg.size = Vector2(280, 54)
+	btn_bg.position = Vector2(100, btn_y + 168)
+	btn_bg.color = Color(0.4, 0.05, 0.05, 1.0)
+	panel.add_child(btn_bg)
+	var btn = Button.new()
+	btn.text = "🏠  MAIN MENU"
+	btn.size = Vector2(280, 54)
+	btn.position = Vector2(100, btn_y + 168)
+	btn.flat = true
+	btn.add_theme_font_size_override("font_size", 20)
+	btn.add_theme_color_override("font_color", Color(1.0, 0.5, 0.5))
+	btn.pressed.connect(func():
+		_save_total_score(0)
+		coins_since_last_life = 0
+		_save_lives(3)
+		get_tree().change_scene_to_file("res://scenes/MainMenu.tscn")
+	)
+	panel.add_child(btn)
+
+	ScreenUtil.shift_children(panel, ui_dy)
 
 func _vibrate(ms: int):
 	if OS.get_name() != "Android":

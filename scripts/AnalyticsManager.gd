@@ -20,8 +20,12 @@ var is_sending: bool = false
 var is_enabled: bool = false
 var server_ts_offset: int = 0
 var session_start_ts: int = 0
+# Level başına deneme sayısı (GA: Complete/Fail'de attempt_num, Complete olunca sıfırlanır)
+var attempts: Dictionary = {}
+const ATTEMPTS_PATH = "user://ga_attempts.json"
 
 func _ready():
+	_load_attempts()
 	_init_user()
 	_init_session()
 	http_init = HTTPRequest.new()
@@ -69,7 +73,7 @@ func _get_ts() -> int:
 func _do_init():
 	var payload = JSON.stringify({
 		"platform": "android",
-		"os_version": "android 10",
+		"os_version": _os_version(),
 		"sdk_version": "rest api v2",
 		"user_id": user_id
 	})
@@ -106,7 +110,7 @@ func _base_event(category: String) -> Dictionary:
 		"user_id": user_id,
 		"client_ts": _get_ts(),
 		"sdk_version": "rest api v2",
-		"os_version": "android 10",
+		"os_version": _os_version(),
 		"manufacturer": OS.get_model_name(),
 		"device": OS.get_model_name(),
 		"platform": "android",
@@ -117,10 +121,10 @@ func _base_event(category: String) -> Dictionary:
 # ── PUBLIC API ────────────────────────────────────────────────────────────────
 
 func level_start(level: int, hero: String):
+	_bump_attempt(level)
 	if not is_enabled: return
 	var e = _base_event("progression")
 	e["event_id"] = "Start:Level%02d" % level
-	e["attempt_num"] = 1
 	e["custom_01"] = hero
 	event_queue.append(e)
 	_flush()
@@ -129,18 +133,20 @@ func level_complete(level: int, hero: String, stars: int, coins: int):
 	if not is_enabled: return
 	var e = _base_event("progression")
 	e["event_id"] = "Complete:Level%02d" % level
-	e["attempt_num"] = 1
+	e["attempt_num"] = _get_attempt(level)
 	e["score"] = coins
 	e["custom_01"] = hero
 	e["custom_02"] = "%d_stars" % stars
 	event_queue.append(e)
 	_flush()
+	attempts.erase(str(level))
+	_save_attempts()
 
 func level_fail(level: int, hero: String, coins: int):
 	if not is_enabled: return
 	var e = _base_event("progression")
 	e["event_id"] = "Fail:Level%02d" % level
-	e["attempt_num"] = 1
+	e["attempt_num"] = _get_attempt(level)
 	e["score"] = coins
 	e["custom_01"] = hero
 	event_queue.append(e)
@@ -152,6 +158,44 @@ func session_end():
 	e["length"] = _get_ts() - session_start_ts
 	event_queue.append(e)
 	_flush()
+
+func _os_version() -> String:
+	# GA formatı "android 14" gibi; sadece rakam/nokta kalsın, en fazla 3 parça
+	var parts = []
+	for p in OS.get_version().split("."):
+		var digits = ""
+		for ch in p:
+			if ch >= "0" and ch <= "9":
+				digits += ch
+		if digits == "":
+			break
+		parts.append(digits)
+		if parts.size() == 3:
+			break
+	return "android " + (".".join(parts) if parts.size() > 0 else "0")
+
+func _get_attempt(level: int) -> int:
+	return max(1, int(attempts.get(str(level), 1)))
+
+func _bump_attempt(level: int):
+	attempts[str(level)] = int(attempts.get(str(level), 0)) + 1
+	_save_attempts()
+
+func _load_attempts():
+	if not FileAccess.file_exists(ATTEMPTS_PATH):
+		return
+	var f = FileAccess.open(ATTEMPTS_PATH, FileAccess.READ)
+	if f:
+		var data = JSON.parse_string(f.get_as_text())
+		f.close()
+		if data is Dictionary:
+			attempts = data
+
+func _save_attempts():
+	var f = FileAccess.open(ATTEMPTS_PATH, FileAccess.WRITE)
+	if f:
+		f.store_string(JSON.stringify(attempts))
+		f.close()
 
 # ── GÖNDERME ─────────────────────────────────────────────────────────────────
 

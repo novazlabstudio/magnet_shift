@@ -87,8 +87,8 @@ func _physics_process(delta):
 
 func _on_detection_body_entered(body):
 	if body.is_in_group("player"):
+		body.die("guard")
 		emit_signal("guard_caught_player")
-		body.die()
 
 # Platform kenarından düşmemek için önündeki zemini kontrol eder
 func _is_floor_ahead() -> bool:

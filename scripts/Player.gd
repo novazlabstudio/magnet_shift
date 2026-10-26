@@ -3,6 +3,8 @@ extends RigidBody2D
 var active_magnet: Node2D = null
 var is_dead: bool = false
 var is_level_complete: bool = false
+# Sonuç ekranındaki mesaj için: "laser" ya da "guard"
+var death_cause: String = ""
 
 signal player_died
 
@@ -23,10 +25,11 @@ func set_active_magnet(magnet: Node2D):
 func clear_active_magnet():
 	active_magnet = null
 
-func die():
+func die(cause: String = ""):
 	if is_dead:
 		return
 	is_dead = true
+	death_cause = cause
 	set_deferred("freeze", true)
 
 	var vis = get_node_or_null("Visual")

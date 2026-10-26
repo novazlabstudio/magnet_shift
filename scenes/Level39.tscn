@@ -2,7 +2,7 @@
 
 [ext_resource type="Script" uid="uid://b4uiyeodm180h" path="res://scripts/GameManager.gd" id="1_bf5k5"]
 
-[node name="Level20" type="Node2D" unique_id=33724834]
+[node name="Level39" type="Node2D" unique_id=33724834]
 script = ExtResource("1_bf5k5")
 next_level_path = "res://scenes/Level40.tscn"
 level_number = 39

@@ -47,4 +47,4 @@ func _start_blink():
 
 func _on_body_entered(body):
 	if body.is_in_group("player") and is_on:
-		body.die()
+		body.die("laser")

@@ -1,12 +1,19 @@
 # Magnet Shift — Yayına Hazırlık İlerleme Notu
 
+## 2026-10-26 — Test, hata düzeltme ve görsel iyileştirme (`fix/bugs-and-polish` dalı)
+- Level 20 → 21 zinciri kopuktu (NEXT çıkmıyordu); platform x yorumu, düşen guard'lar, zemin altına düşen mıknatıslar, MECH seçiminin kaybolması, kapı animasyonu, ses butonu dokunma hatası düzeltildi.
+- Uzun ekranlarda siyah bantlar kaldırıldı (`keep_width` + ortalama + çentik payı).
+- Game Over: reklam butonu ana eylem ("CONTINUE +3 ❤️", "keep your N coins"); "TRY AGAIN" → "START OVER".
+- Ölüm nedeni mesajı (ZAPPED / CAUGHT), müzik döngüsü kesintisiz, analitikte gerçek attempt_num.
+- Yeni `.aab` için `version/code=2`, `version/name=1.0.1`. Telefonda test edilip Alpha'ya yeni sürüm olarak yüklenmeli.
+
 Son güncelleme: 2026-09-30
 
 ## Tamamlananlar
-- [x] AdMob rewarded ad entegrasyonu (canlar bitince "WATCH AD: +3 ❤️") — detay: [CLAUDE.md](CLAUDE.md)
+- [x] AdMob rewarded ad entegrasyonu (canlar bitince "CONTINUE +3 ❤️") — detay: [CLAUDE.md](CLAUDE.md)
 - [x] GameAnalytics (metrik) entegrasyonu — `scripts/AnalyticsManager.gd` (daha önceden yapılmıştı)
 - [x] Android paket adı: `com.novazlabstudio.magnetshift`
-- [x] `version/name` = `1.0.0` (export_presets.cfg)
+- [x] `version/name` = `1.0.0` (export_presets.cfg) — 2026-10-26: depoda boş görünüyordu; `1.0.1` / `version/code=2` yapıldı (ilk yükleme code 1)
 - [x] Release keystore oluşturuldu: `keystore/release.keystore` (alias: `magnetshift`, parola: sadece kullanıcının kendi not/parola yöneticisinde — bu dosyaya yazılmadı, `.gitignore` ile hariç tutuluyor)
 - [x] İlk release `.aab` başarıyla export edildi (`Magnet Shift.aab`)
 - [x] Google Group oluşturuldu: **`magnet-shift-testers@googlegroups.com`** — "anyone on the web can join/search", "who can view members" → group managers (üye mailleri birbirine görünmesin diye)
