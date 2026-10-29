@@ -8,7 +8,7 @@
 - 5. kahraman BLAZE: 3 ödüllü reklamla açılıyor.
 - Yeni `.aab` için `version/code=2`, `version/name=1.0.1`. Telefonda test edilip Alpha'ya yeni sürüm olarak yüklenmeli.
 
-Son güncelleme: 2026-09-30
+Son güncelleme: 2026-10-29
 
 ## Tamamlananlar
 - [x] AdMob rewarded ad entegrasyonu (canlar bitince "CONTINUE +3 ❤️") — detay: [CLAUDE.md](CLAUDE.md)
@@ -43,20 +43,23 @@ Son güncelleme: 2026-09-30
     - Security practices → "Data is encrypted in transit" otomatik göründü
     - **Privacy policy linki eksik — formu submit etmek için hâlâ gerekiyor (aşağıya bak)**
 
-## Şu An Kaldığımız Yer
-Data safety formunun **Preview** adımındayız. Tek eksik: **Privacy Policy URL'i**. Kullanıcı daha önce başka bir mail hesabından GitHub Pages ile böyle bir statik sayfa yayınlamıştı (bir Chrome extension için) — aynı yöntemi burada da kullanacak ama bunu bu sohbette yapmadı, bir sonraki sohbette devam edilecek.
+- [x] Kod public repoya pushlandı: https://github.com/novazlabstudio/magnet_shift (kodda para/token harcatacak API key yok; keystore `.gitignore` ile hariç). Push'ta kullanılan PAT'ler revoke edildi, remote URL'den token temizlendi.
+- [x] **Privacy Policy yayında**: https://novazlabstudio.github.io/magnet_shift_policy/ (ayrı public repo `novazlabstudio/magnet_shift_policy`, tek `index.html`, iletişim: novazlabstudio@gmail.com). Yerel kopya: `C:\dgn\magnet_shift_policy\index.html`.
+- [x] Tüm App content formları, store settings (Game/Arcade, iletişim e-postası), store listing (açıklamalar, ikon, feature graphic, 7 ekran görüntüsü, AI asset etiketi: ikon + feature graphic) ve Advertising ID declaration tamamlandı. Görseller: `C:\dgn\magnet_shift_store\`.
+- [x] Closed testing - Alpha: release 1 (1.0.0), 178 ülke, tester = Google Group (opt-in: https://play.google.com/apps/testing/com.novazlabstudio.magnetshift, grup: https://groups.google.com/g/magnet-shift-testers), feedback = novazlabstudio@gmail.com. 2026-10-12 onaylandı; 12+ tester ile 14 gün tamamlandı.
+- [x] **Production access verildi** (Google maili, 2026-10-29 civarı).
+- [x] 2026-10-29 (Windows PC): Mac commit'leri çekildi (`6dd4c45`). `export_presets.cfg`'de `permissions/internet` ve `access_network_state` true yapıldı (commit edilmedi). Godot 4.6.3 headless import + kısa çalıştırma hatasız. Eski 1.0.0 dosyası `C:\dgn\Magnet Shift 1.0.0.aab` olarak saklandı; 1.0.1 release `.aab` export'u `C:\dgn\Magnet Shift.aab`.
 
-## Sıradaki Adımlar (bir sonraki sohbette buradan devam)
-1. **Privacy Policy metnini yaz** (Claude ile birlikte hazırlanabilir — içerik: GameAnalytics + AdMob veri toplama, UMP/GDPR consent akışı, 3. taraf SDK'lar, iletişim bilgisi). Henüz yazılmadı.
-2. **GitHub Pages ile yayınla**: hangi GitHub hesabından yayınlanacağı henüz netleşmedi (novazlabstudio'ya özel yeni hesap mı, eski hesap mı — kullanıcı karar verecek). Basit repo → `index.html` → Settings → Pages → `https://<user>.github.io/<repo>/` linkini al.
-3. O linki Play Console → **App content → Data safety → Privacy policy** alanına gir, formu **Submit** et.
-4. **Main store listing**'de eksik olan **Full description**'ı doldur (daha önce "Add a full description to save" hatası çıkmıştı, henüz yazılmadı) + short description, ekran görüntüleri, feature graphic (1024x500).
-5. Closed testing track'inde **"No countries or regions have been selected"** hatası vardı → track ayarlarından **"Add countries / regions"** ile ülke seç (öneri: hepsini seçmek).
-6. Yukarıdaki eksikler kapanınca release'i tekrar **review** edip **rollout**'u başlat.
-7. Track'in **Testers** sekmesinde → **Add from Google Groups** → `magnet-shift-testers@googlegroups.com` ekle → kaydet.
-8. Testers sekmesinde çıkan **opt-in URL**'i kopyala.
-9. Bu linki **r/PlayStoreTesters** (Reddit) ve benzeri topluluklarda paylaş, Play Console'un istediği sayıda testerın **kesintisiz 14 gün** opted-in kalmasını bekle.
-10. 14 gün + gerekli tester sayısı dolunca Play Console'da **Production**'a geçiş başvurusu açılacak.
+## Şu An Kaldığımız Yer
+2026-10-29: **1.0.1 (version code 2) Production'a yüklendi ve Google incelemesine gönderildi** (178 ülke, full rollout). Managed publishing **kapalı** (kullanıcı tercihi): onay gelince otomatik yayına çıkar. İlk gönderimde sadece ülke ayarı incelemeye gitmişti ve aynı gün onaylanıp yayınlandı (178 ülke, sürümsüz); 1.0.1 release'i ayrıca "Submit 1 change for review" ile gönderildi ve "Changes in review"da. 1.0.1 telefonda henüz test edilmedi.
+
+Mağaza linki (onaydan sonra): https://play.google.com/store/apps/details?id=com.novazlabstudio.magnetshift
+
+## Sıradaki Adımlar
+1. Google onayını bekle (e-posta gelir). Publishing overview'da kırmızı "View issue" çıkarsa düzelt.
+2. Telefonda 1.0.1 testi (Internal testing'e aynı .aab yüklenerek ya da yayından sonra): uzun ekran/çentik, 5 kahraman kartı ve seçimin korunması, level 1-3, level 20 → NEXT → 21, ZAPPED/CAUGHT, CONTINUE +3 reklamı, BLAZE 3 reklamla açılıyor, müzik döngüsü. Önce AdMob → Settings → Test devices'a telefonu ekle; kendi reklamına tıklama.
+3. Yerelde commit edilmemiş: `export_presets.cfg` (INTERNET + ACCESS_NETWORK_STATE izinleri true), `PROGRESS.md`, `project.godot` (Godot'nun satır sırası değişikliği). Commit/push kullanıcı kararı.
+4. Sonraki sürümlerde version code 3'ten başlamalı.
 
 ## Önemli Hatırlatmalar
 - Release keystore'u (`keystore/release.keystore`) proje klasörü dışında ayrıca yedekle (bulut, harici disk). Kaybedilirse bu paket adıyla bir daha güncelleme yüklenemez.
