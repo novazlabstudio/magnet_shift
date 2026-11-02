@@ -30,10 +30,23 @@ GDScript'te (Godot 4) aynı fonksiyon içindeki iki ayrı lambda, dışarıdaki 
 - `stretch/aspect = keep_width`: genişlik hep 480, uzun telefonlarda viewport dikeyde uzar (siyah bant yok). Geniş ekranda (tablet) yanlarda bant olur.
 - Sabit koordinatlı paneller 854'e göre çizilir, sonra `ScreenUtil.shift_children(..., ScreenUtil.center_offset(self))` ile ortalanır. Üst çubuktaki öğeler (HUD, BOARD/LVL, SKIP) ise `ScreenUtil.safe_top(self)` kadar aşağı itilir (çentik). Yeni ekran/panel eklerken aynı deseni kullan.
 - Müzikler import ayarında `loop_mode=2` (Forward) ile kesintisiz döner.
+- HUD soldan sağa: pause butonu (6..50), skor, ses butonu (160..204), LVL rozeti (212..330), sağda toplam skor + canlar. Dokunuş `_input`'ta işlendiği için HUD'a yeni buton eklenirse `_is_on_hud_button` listesine de eklenmeli, yoksa butona basmak mıknatısı da tetikler.
+
+## Kontrol, Göstergeler, Pause
+- Dokunulan noktaya **en yakın mıknatıs** (dünya koordinatında) basılı tutulduğu sürece oyuncuyu çeker; birden çok parmakta son basılan geçerli.
+- `MagnetIndicators.gd` (UILayer): ekranın üstünde/altında kalan mıknatıslar için kenarda ok; her kenarın sol/sağ yarısında en yakın olan gösterilir, Level ≤5'te altında "TAP" yazar. Oka dokunmak o mıknatısı seçer (`_pick_magnet`), ama dokunuş görünür bir mıknatısa oktan daha yakınsa görünür olan seçilir.
+- `TutorialOverlay.gd`: Level 1'de, `user://tutorial_done.dat` yoksa gösterilir (Level 1 ilk kez bitince yazılır). Hedef seçimi `GameManager._tutorial_target`: oyuncunun üstündeki en yakın mıknatıs, çıkış mıknatısı her zaman aday. Hedef ekran dışındaysa el oku gösterir.
+- Pause: `get_tree().paused`; `PausePanel` `PROCESS_MODE_ALWAYS`. MAIN MENU sonuç ekranındakiyle aynı `_go_to_main_menu` (koşu skoru/canlar sıfırlanır). Uygulama arka plana atılınca (`NOTIFICATION_APPLICATION_PAUSED`) otomatik duraklar; `FOCUS_OUT` bilerek kullanılmıyor. Sahne değiştirmeden önce `paused` false yapılmalı.
+- GA Design olayları: `Level:Quit:LevelNN` (pause'dan menüye çıkış), `Tutorial:Complete`.
+
+## Masaüstünde Test
+- Godot 4.6.3 (Windows): `C:\dgn\Godot_v4.6.3-stable_win64.exe\Godot_v4.6.3-stable_win64_console.exe`. Görsel test için geçici bir runner sahnesi `--resolution 480x1040` / `480x854` ile çalıştırılıp `get_viewport().get_texture().get_image()` ile ekran görüntüsü alınabilir.
+- Masaüstünde çalıştırınca `AnalyticsManager` gerçek GA'ya istek atar: runner'da `is_enabled=false`, `http_init/http_events.cancel_request()` ve `_on_init_completed` bağlantısını koparmak gerekir.
 
 ## Sürüm
 - Proje Godot 4.6 ile kaydedilmiş (`config/features` 4.6, sahnelerde `unique_id`). Bu Mac'te şu an sadece 4.4.1 + 4.4.1 export şablonları var.
-- Play Console'a her yüklemede `export_presets.cfg` → `version/code` artırılmalı (ilk yükleme 1 idi).
+- Play Console'a her yüklemede `export_presets.cfg` → `version/code` artırılmalı (1.0.0=1, 1.0.1=2, 1.0.2=3; sıradaki 4).
+- Release keystore ve export parolaları sadece Windows PC'de; ayrıntı ve derleme komutları PROGRESS.md bölüm 5.
 
 ## Analitik
 - `AnalyticsManager` Complete/Fail olaylarında gerçek `attempt_num` gönderir (`user://ga_attempts.json`, Complete'te sıfırlanır); `os_version` cihazdan okunur.

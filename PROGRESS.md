@@ -1,68 +1,88 @@
-# Magnet Shift — Yayına Hazırlık İlerleme Notu
+# Magnet Shift — Durum ve Devam Notu
 
-## 2026-10-26 — Test, hata düzeltme ve görsel iyileştirme (`fix/bugs-and-polish` dalı)
-- Level 20 → 21 zinciri kopuktu (NEXT çıkmıyordu); platform x yorumu, düşen guard'lar, zemin altına düşen mıknatıslar, MECH seçiminin kaybolması, kapı animasyonu, ses butonu dokunma hatası düzeltildi.
-- Uzun ekranlarda siyah bantlar kaldırıldı (`keep_width` + ortalama + çentik payı).
-- Game Over: reklam butonu ana eylem ("CONTINUE +3 ❤️", "keep your N coins"); "TRY AGAIN" → "START OVER".
-- Ölüm nedeni mesajı (ZAPPED / CAUGHT), müzik döngüsü kesintisiz, analitikte gerçek attempt_num.
-- 5. kahraman BLAZE: 3 ödüllü reklamla açılıyor.
-- Yeni `.aab` için `version/code=2`, `version/name=1.0.1`. Telefonda test edilip Alpha'ya yeni sürüm olarak yüklenmeli.
+Son güncelleme: 2026-11-02 (Windows PC oturumu)
 
-Son güncelleme: 2026-10-29
+Bu dosya başka bir bilgisayarda devam edecek Claude oturumu için yazıldı. Önce bunu, sonra teknik kurallar için [CLAUDE.md](CLAUDE.md)'yi oku. Kullanıcıyla Türkçe konuş; oyun içi metinler her zaman İngilizce.
 
-## Tamamlananlar
-- [x] AdMob rewarded ad entegrasyonu (canlar bitince "CONTINUE +3 ❤️") — detay: [CLAUDE.md](CLAUDE.md)
-- [x] GameAnalytics (metrik) entegrasyonu — `scripts/AnalyticsManager.gd` (daha önceden yapılmıştı)
-- [x] Android paket adı: `com.novazlabstudio.magnetshift`
-- [x] `version/name` = `1.0.0` (export_presets.cfg) — 2026-10-26: depoda boş görünüyordu; `1.0.1` / `version/code=2` yapıldı (ilk yükleme code 1)
-- [x] Release keystore oluşturuldu: `keystore/release.keystore` (alias: `magnetshift`, parola: sadece kullanıcının kendi not/parola yöneticisinde — bu dosyaya yazılmadı, `.gitignore` ile hariç tutuluyor)
-- [x] İlk release `.aab` başarıyla export edildi (`Magnet Shift.aab`)
-- [x] Google Group oluşturuldu: **`magnet-shift-testers@googlegroups.com`** — "anyone on the web can join/search", "who can view members" → group managers (üye mailleri birbirine görünmesin diye)
-- [x] **Android Developer Verification**: paket adı zaten "Registered" durumda (3 key — cihaza kurulan debug/release build'lerden otomatik algılanmış), ekstra işlem gerekmedi
-- [x] Play Console'da **"Magnet Shift"** app kaydı oluşturuldu (Create app → Game, Free)
-- [x] Closed testing → **Alpha** track zaten mevcuttu, **Create new release** ile `Magnet Shift.aab` yüklendi (Play App Signing kabul edildi)
-- [x] **App content** formlarının çoğu tamamlandı:
-  - Financial features → "My app doesn't provide any financial features"
-  - Sign in details (eski adı "App access") → "No" (kısıtlı bölüm yok)
-  - Ads → "Yes, my app contains ads"
-  - Health declaration → "No"
-  - Content ratings (IARC) → Category: Game; questionnaire'deki tüm sorulara "No" (şiddet/cinsellik/dil/madde/vücut fonksiyonu/satın alma-kripto/sohbet/konum-paylaşımı/suç tekniği yok)
-  - Target audience → **13-15, 16-17, 18 and over** işaretlendi (13 yaş altı bilinçli olarak seçilmedi — "Designed for Families" politikasına girmemek için, aksi halde kişiselleştirilmiş reklam gösterilemez ve AdMob geliri ciddi düşer)
-  - **Data safety** formu dolduruldu:
-    - Veri topluyor mu → Yes
-    - Encrypted in transit → Yes
-    - Account creation → yok ("does not allow users to create an account"), dışarıdan login da yok
-    - Location (approximate/precise) → toplanmıyor (manifest'te konum izni yok, doğrulandı)
-    - Files and docs → toplanmıyor
-    - App activity → sadece **App interactions** işaretlendi (GameAnalytics), In-app search/Installed apps/Other → hayır
-      - Ephemeral değil, collection required, amaç: sadece **Analytics** (hem collected hem shared tarafında)
-      - Collected + Shared ikisi de işaretli (GameAnalytics 3. taraf servis)
-    - App info and performance → sadece **Diagnostics** işaretlendi (AdMob), Crash logs işaretlenmedi (ayrı bir crash reporting servisi yok)
-      - Ephemeral değil, collection required
-      - Collected + Shared ikisi de işaretli (AdMob/Google 3. taraf)
-    - Security practices → "Data is encrypted in transit" otomatik göründü
-    - **Privacy policy linki eksik — formu submit etmek için hâlâ gerekiyor (aşağıya bak)**
+## 1. Kısa özet
 
-- [x] Kod public repoya pushlandı: https://github.com/novazlabstudio/magnet_shift (kodda para/token harcatacak API key yok; keystore `.gitignore` ile hariç). Push'ta kullanılan PAT'ler revoke edildi, remote URL'den token temizlendi.
-- [x] **Privacy Policy yayında**: https://novazlabstudio.github.io/magnet_shift_policy/ (ayrı public repo `novazlabstudio/magnet_shift_policy`, tek `index.html`, iletişim: novazlabstudio@gmail.com). Yerel kopya: `C:\dgn\magnet_shift_policy\index.html`.
-- [x] Tüm App content formları, store settings (Game/Arcade, iletişim e-postası), store listing (açıklamalar, ikon, feature graphic, 7 ekran görüntüsü, AI asset etiketi: ikon + feature graphic) ve Advertising ID declaration tamamlandı. Görseller: `C:\dgn\magnet_shift_store\`.
-- [x] Closed testing - Alpha: release 1 (1.0.0), 178 ülke, tester = Google Group (opt-in: https://play.google.com/apps/testing/com.novazlabstudio.magnetshift, grup: https://groups.google.com/g/magnet-shift-testers), feedback = novazlabstudio@gmail.com. 2026-10-12 onaylandı; 12+ tester ile 14 gün tamamlandı.
-- [x] **Production access verildi** (Google maili, 2026-10-29 civarı).
-- [x] 2026-10-29 (Windows PC): Mac commit'leri çekildi (`6dd4c45`). `export_presets.cfg`'de `permissions/internet` ve `access_network_state` true yapıldı (commit edilmedi). Godot 4.6.3 headless import + kısa çalıştırma hatasız. Eski 1.0.0 dosyası `C:\dgn\Magnet Shift 1.0.0.aab` olarak saklandı; 1.0.1 release `.aab` export'u `C:\dgn\Magnet Shift.aab`.
+- **Oyun:** Magnet Shift. Godot 4.6, dikey mobil oyun, 50 level. Dokunduğun noktaya en yakın mıknatıs, parmak basılı kaldıkça oyuncuyu çeker. Coin topla, lazer ve bekçiden kaç, çıkış kapısına ulaş.
+- **Mağazada yayında:** https://play.google.com/store/apps/details?id=com.novazlabstudio.magnetshift
+- **Paket:** `com.novazlabstudio.magnetshift`. Geliştirici hesabı: novazlabstudio@gmail.com (Play Console, AdMob, GameAnalytics, GitHub aynı marka altında).
+- **Repo:** https://github.com/novazlabstudio/magnet_shift (dal `main`).
+- **Şu an:** 1.0.1 production'da. **1.0.2 (version code 3)** derlendi; kullanıcı 2026-11-02'de Production'a yükleyip incelemeye gönderiyordu. Yeni oturumda ilk iş: Play Console → Publishing overview'da 1.0.2'nin "Changes in review" altında olduğunu, ya da yayınlandığını teyit et.
 
-## Şu An Kaldığımız Yer
-2026-10-29: **1.0.1 (version code 2) Production'a yüklendi ve Google incelemesine gönderildi** (178 ülke, full rollout). Managed publishing **kapalı** (kullanıcı tercihi): onay gelince otomatik yayına çıkar. İlk gönderimde sadece ülke ayarı incelemeye gitmişti ve aynı gün onaylanıp yayınlandı (178 ülke, sürümsüz); 1.0.1 release'i ayrıca "Submit 1 change for review" ile gönderildi ve "Changes in review"da. 1.0.1 telefonda henüz test edilmedi.
+## 2. Sürüm geçmişi
 
-Mağaza linki (onaydan sonra): https://play.google.com/store/apps/details?id=com.novazlabstudio.magnetshift
+| Sürüm | Code | Nerede | İçerik |
+|---|---|---|---|
+| 1.0.0 | 1 | Closed testing (Alpha) | İlk sürüm. 12+ tester ile 14 gün kapalı test bu sürümle yapıldı. |
+| 1.0.1 | 2 | Production (2026-10-29'da gönderildi, onaylandı) | Mac oturumunda yapılan düzeltmeler: Level 20→21 zinciri, platform x yorumu, bekçilerin düşmesi, zemin altına düşen mıknatıslar, MECH seçiminin kaybolması, kapı animasyonu; uzun ekran desteği (`keep_width`, çentik payı); Game Over'da "CONTINUE +3 ❤️"; ZAPPED/CAUGHT mesajı; müzik döngüsü; 5. kahraman BLAZE (3 ödüllü reklamla açılır). INTERNET ve ACCESS_NETWORK_STATE izinleri açıkça etkinleştirildi. |
+| 1.0.2 | 3 | Production'a gönderiliyor (2026-11-02) | Kullanıcı geri bildirimine göre: Level 1 eğitimi, ekran dışı mıknatıs okları, pause butonu (ayrıntı bölüm 3). |
+| sonraki | **4** | — | Bir sonraki yüklemede `export_presets.cfg` → `version/code=4`. |
 
-## Sıradaki Adımlar
-1. Google onayını bekle (e-posta gelir). Publishing overview'da kırmızı "View issue" çıkarsa düzelt.
-2. Telefonda 1.0.1 testi (Internal testing'e aynı .aab yüklenerek ya da yayından sonra): uzun ekran/çentik, 5 kahraman kartı ve seçimin korunması, level 1-3, level 20 → NEXT → 21, ZAPPED/CAUGHT, CONTINUE +3 reklamı, BLAZE 3 reklamla açılıyor, müzik döngüsü. Önce AdMob → Settings → Test devices'a telefonu ekle; kendi reklamına tıklama.
-3. Yerelde commit edilmemiş: `export_presets.cfg` (INTERNET + ACCESS_NETWORK_STATE izinleri true), `PROGRESS.md`, `project.godot` (Godot'nun satır sırası değişikliği). Commit/push kullanıcı kararı.
-4. Sonraki sürümlerde version code 3'ten başlamalı.
+## 3. 1.0.2'de ne yapıldı (2026-11-02)
 
-## Önemli Hatırlatmalar
-- Release keystore'u (`keystore/release.keystore`) proje klasörü dışında ayrıca yedekle (bulut, harici disk). Kaybedilirse bu paket adıyla bir daha güncelleme yüklenemez.
-- Reklam kodu debug build'de otomatik test ID kullanıyor, release'de gerçek ID — kendi reklamına gerçek build'de tıklama (AdMob politika ihlali riski).
-- Target audience'a 13 yaş altını **bilerek** dahil etmedik — "Designed for Families" kısıtlamalarına girmemek için (kişiselleştirilmiş reklam geliri korunuyor).
-- Daha fazla teknik/kod detayı için [CLAUDE.md](CLAUDE.md)'ye bak.
+Oyuncu geri bildirimi: (a) mıknatısa dokunmaları gerektiğini anlamıyorlar, (b) ileri level'lerde üstteki mıknatıslar ekranda görünmüyor (sol/sağ üste dokununca çalışıyor ama kimse bilmiyor), (c) oyun sırasında menüye dönülemiyor.
+
+- **Level 1 eğitimi** (`scripts/TutorialOverlay.gd`, yönetimi `GameManager._update_tutorial`): Sıradaki mıknatısın üstünde sarı halka + 👆, altta adım adım metin ("TAP & HOLD the magnet to fly to it" → "KEEP HOLDING... let go to drop" → "Now TAP & HOLD the next magnet" → "Now HOLD THIS ONE to reach the EXIT 🚪"; hedef ekran dışındaysa "Magnet above! TAP THE ARROW"). `user://tutorial_done.dat` yoksa gösterilir; Level 1 ilk kez bitince yazılır.
+- **Ekran dışı mıknatıs okları** (`scripts/MagnetIndicators.gd`): Ekranın üstünde/altında kalan mıknatıslar için kenarda, sol ve sağ yarı için birer ok + mıknatıs ikonu. Oka dokunmak o mıknatısı seçer. Dokunuş görünür bir mıknatısa oktan daha yakınsa görünür olan seçilir (`GameManager._pick_magnet`). Level ≤5'te okun altında "TAP". Not: 854 yüksekliğindeki ekranlarda Level 1'in üstteki iki mıknatısı bile başta ekran dışındaydı.
+- **Pause:** HUD sol üstte ❚❚ butonu. Panel: RESUME / MAIN MENU (MAIN MENU koşu skorunu ve canları sıfırlar, sonuç ekranındaki menü butonuyla aynı `_go_to_main_menu`). Uygulama arka plana atılınca otomatik pause. HUD yeniden dizildi (pause 6..50, skor, ses 160..204, LVL 212..330).
+- **Analitik:** yeni GA design olayları `Level:Quit:LevelNN`, `Tutorial:Complete`.
+- **Test:** Masaüstünde 480x1040 ve 480x854 ekran görüntüsüyle (ok seçimi, görünür mıknatısla karışmama, pause/resume). Kullanıcıya telefonda denemesi için debug APK verildi (`C:\dgn\MagnetShift_1.0.2_test.apk`); kullanıcı ardından production'a yüklemeye karar verdi.
+
+## 4. Açık işler
+
+1. 1.0.2'nin Play Console'da incelemede/yayında olduğunu teyit et. Release taslakta kalmış olabilir (1.0.1'de olmuştu, bkz. bölüm 7).
+2. Yayından sonra kullanıcı geri bildirimini topla. Özellikle eğitimin ve okların anlaşılıp anlaşılmadığına GA'dan bak: `Tutorial:Complete` ve Level 1-5 Fail/Complete oranları, `Level:Quit:*`.
+3. Closed testing - Alpha track'i isteğe bağlı olarak "Pause track" ile durdurulabilir (zorunlu değil; testerlar zaten production sürümünü alıyor).
+4. Kullanıcı ayrı bir **İHA oyunu** yaptı ve kapalı teste açacak. O oyun için **yeni bir Google Group** açılmalı (`magnet-shift-testers` kullanılmamalı). Play Console'da her uygulamanın track'leri ve 12 tester / 14 gün şartı ayrı, birbirine karışmaz. Paket adı `com.novazlabstudio.<oyunadi>` olmalı; AdMob'da ayrı app kaydı açılmalı (CLAUDE.md).
+5. Keystore yedeği: bölüm 5'e bak.
+
+## 5. Bilgisayarlar ve derleme
+
+**Release keystore yalnızca Windows PC'de:** `C:\dgn\magnet_shift\keystore\release.keystore` (alias `magnetshift`). Git'te yok (`.gitignore`). Parolalar sadece kullanıcıda ve Godot'nun `.godot/export_credentials.cfg` dosyasında (o da Git'te yok). Başka bir bilgisayarda release `.aab` derlemek için keystore dosyasını oraya kopyalayıp Godot'da Project → Export → Android → Keystore (Release) alanlarına yolu, alias'ı ve parolayı girmek gerekir. Keystore kaybolursa güncelleme yüklenemez (Play App Signing açık olduğu için Google'a upload key sıfırlama başvurusu yapılabilir ama zahmetli). Kullanıcıya bulut/harici disk yedeğini hatırlat. Upload sertifikası SHA-256: `6C:C3:CF:F6:3A:7D:B7:5B:89:0E:50:73:0F:AE:E1:9B:4D:78:25:2D:E0:C6:9B:97:B9:19:FC:ED:D3:84:13:3B`.
+
+**Windows PC ortamı:**
+- Proje: `C:\dgn\magnet_shift`. Godot 4.6.3 + aynı sürüm export şablonları: `C:\dgn\Godot_v4.6.3-stable_win64.exe\Godot_v4.6.3-stable_win64_console.exe`. Android build şablonu `android/build` (4.6.3.stable, Git'te yok). Android Studio + SDK kurulu; `keytool`: `C:\Program Files\Android\Android Studio\jbr\bin\keytool.exe`.
+- Çıktılar `C:\dgn\` altında: `Magnet Shift.aab` (en son sürüm, şu an 1.0.2), `Magnet Shift 1.0.0.aab`, `Magnet Shift 1.0.1.aab`, `MagnetShift_1.0.2_test.apk` (debug).
+- Mac'te Godot 4.4.1 var (proje 4.6 ile kaydedilmiş); Mac'ten release derlenmedi.
+
+**Derleme komutları (Git Bash, proje klasöründe):**
+- Import: `"$G" --headless --path . --import`
+- Release AAB: `"$G" --headless --path . --export-release "Android" "../Magnet Shift.aab"` (önce eski dosyayı sürüm adıyla yeniden adlandır).
+- Telefonda denemek için debug APK: `export_presets.cfg`'de geçici olarak `gradle_build/export_format=0` yap, `--export-debug "Android" "C:/dgn/....apk"`, sonra `export_format=1`'e geri al. Debug build otomatik **test reklamı** kullanır (AdMob riski yok). Debug APK, Play sürümünden farklı imzalı olduğu için telefondaki Play sürümü önce kaldırılmalı.
+- Bilinen tuhaflıklar: Godot export bittikten sonra ("[ DONE ] export") bazen kapanmayıp asılı kalıyor; dosya yine de tamam, `timeout` ile çalıştır. Godot `project.godot`'ta `default_clear_color` satırının yerini değiştiriyor; içerik aynı, commit'e katmadan `git checkout -- project.godot` ile geri al.
+- İmza kontrolü: AAB için `keytool -printcert -jarfile "Magnet Shift.aab"` (SHA-256 yukarıdakiyle aynı olmalı); APK için Android SDK `build-tools/*/apksigner.bat verify --print-certs`.
+- Masaüstünde oyunu çalıştırmak GameAnalytics'e gerçek olay gönderir; test runner'da kapatma yöntemi CLAUDE.md "Masaüstünde Test" bölümünde.
+
+## 6. Git / GitHub
+
+- Bu Windows PC'nin varsayılan GitHub hesabı **`doganciraci`**; novazlabstudio reposuna push 403 veriyor. Push için kullanıcı novazlabstudio hesabından classic PAT (`repo` scope) oluşturup Git Bash'te kendisi çalıştırıyor: `git push "https://<TOKEN>@github.com/novazlabstudio/magnet_shift.git" main`. Token'ı remote URL'ye kaydetme; iş bitince token'ı revoke et. Claude token içeren komutu çalıştıramıyor (güvenlik engeli), push'u kullanıcı yapar.
+- Repo public; kodda para harcatacak API anahtarı yok (GameAnalytics anahtarları ve AdMob ID'leri istemci tarafında zaten açık olan türden).
+- Privacy policy ayrı repoda: https://novazlabstudio.github.io/magnet_shift_policy/ (`novazlabstudio/magnet_shift_policy`, tek `index.html`; yerel kopya `C:\dgn\magnet_shift_policy\index.html`). İletişim: novazlabstudio@gmail.com. Veri toplama değişirse (yeni SDK vb.) bu sayfa ve Data safety formu birlikte güncellenmeli.
+
+## 7. Play Console
+
+- **Track'ler:** Production (178 ülke + rest of world, full rollout), Closed testing - Alpha (1.0.0, tester = Google Group `magnet-shift-testers@googlegroups.com`, opt-in: https://play.google.com/apps/testing/com.novazlabstudio.magnetshift, grup: https://groups.google.com/g/magnet-shift-testers, feedback = novazlabstudio@gmail.com). Internal testing kullanılmadı.
+- **Managed publishing kapalı** (kullanıcı tercihi): onay gelince otomatik yayınlanır.
+- **Dersler:**
+  - Sürüm yüklemek: Track → Create new release → `.aab` → release notes → Next → Save → **Publishing overview → Submit changes for review**. Save'den sonra gönderilmezse release "Draft" kalır. 1.0.1'de sadece ülke ayarı incelemeye gitmişti, release taslakta kalmıştı; Publishing overview'da Production altında sürüm satırının ("3 (1.0.2) – Start full rollout") olduğunu her zaman kontrol et.
+  - İncelemede bir şey varken yeni gönderim "Restart review" uyarısı verir; yeniden başlatmak süreyi uzatır.
+  - Gönderimden önce birkaç dakikalık "quick checks" çalışır; kırmızı "View issue" çıkarsa düzeltmeden gönderilmez (ilk seferde "Advertising ID declaration" eksikti).
+  - Uyarı (warning) yayını engellemez; sadece Error engeller.
+- **Kişisel geliştirici hesabı kuralı:** yeni her uygulama production'dan önce en az 12 opted-in tester ile 14 gün kapalı test istiyor (İHA oyunu için de geçerli). Testerların gerçekten açıp kullanması ve 1-2 geri bildirim önemli; production başvurusunda "testten ne öğrendin" soruluyor.
+- **Store listing:** Kısa/uzun açıklama İngilizce. Görseller `C:\dgn\magnet_shift_store\` (icon_512.png, feature_graphic_1024x500.png; `icon.svg`'den headless Chrome ile üretildi). AI asset etiketi: ikon + feature graphic AI olarak işaretli. Kategori Game/Arcade.
+
+## 8. Doldurulan formlar (yeni oyunda da şablon olarak kullanılabilir)
+
+- Financial features: "My app doesn't provide any financial features". Health: yok. Government app: No. Sign in details (App access): No. Ads: Yes. Advertising ID: Yes (Advertising).
+- Content rating (IARC): Category Game, tüm sorulara No (şiddet, korku, cinsellik, dil, madde, bodily humor, satın alma/kripto, kullanıcı etkileşimi, konum paylaşımı, suç).
+- Target audience: **13-15, 16-17, 18+**. 13 yaş altı bilinçli olarak seçilmedi ("Designed for Families" → kişiselleştirilmiş reklam yasağı, AdMob geliri düşer).
+- Data safety: veri toplanıyor; aktarımda şifreli; hesap oluşturma yok. Toplanan: **App activity → App interactions** (GameAnalytics; collected + shared; ephemeral değil; zorunlu; amaç Analytics) ve **App info and performance → Diagnostics** (AdMob; collected + shared; ephemeral değil; zorunlu; amaç Analytics). Konum, dosya vb. yok (manifest'te konum izni yok).
+
+## 9. Önemli hatırlatmalar
+
+- Release build gerçek reklam gösterir; kullanıcı kendi reklamına tıklamamalı. Telefonda release test edilecekse önce AdMob → Settings → Test devices'a telefon eklenmeli. Debug build otomatik test reklamı kullanır.
+- Her yüklemede `version/code` artır (sıradaki: 4).
+- Yeni HUD butonu eklenirse `_is_on_hud_button` listesine ekle (CLAUDE.md).

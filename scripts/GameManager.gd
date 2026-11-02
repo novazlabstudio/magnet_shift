@@ -29,6 +29,12 @@ var sound_button: Button
 # Çentik payı (HUD'u aşağı iter) ve uzun ekranlarda panelleri ortalamak için dikey kayma
 var hud_top: float = 0.0
 var ui_dy: float = 0.0
+var pause_button: Button = null
+var pause_panel: ColorRect = null
+var indicators: Node2D = null
+var tutorial: Node2D = null
+var exit_position: Vector2 = Vector2.ZERO
+const TUTORIAL_FILE := "user://tutorial_done.dat"
 
 func get_level_data() -> Dictionary:
 	var levels = {
@@ -106,6 +112,7 @@ func _process(delta):
 			var progress = 1.0 - clamp(player.position.y / lh, 0.0, 1.0)
 			var target_offset = -250.0 * progress
 			cam.offset.y = lerp(cam.offset.y, target_offset, delta * 3.0)
+	_update_tutorial()
 
 func _play_music():
 	var music_num = ((level_number - 1) % 20) + 1
@@ -272,6 +279,7 @@ func _build_level():
 	_add_platforms(scaled_platforms, d["pc"])
 	_add_player(Vector2(60, lh - 80))
 	var scaled_exit = Vector2(d["exit"].x, d["exit"].y * scale_y)
+	exit_position = scaled_exit
 	var scaled_obstacles = _build_obstacle_list(scaled_platforms, scaled_exit)
 	var scaled_magnets = []
 	for m in d["extra_magnets"]:
@@ -714,23 +722,41 @@ func _setup_ui():
 	hud_bg.offset_bottom = 84
 	ui.add_child(hud_bg)
 
+	pause_button = Button.new()
+	pause_button.name = "PauseBtn"
+	pause_button.text = "❚❚"
+	pause_button.size = Vector2(44, 44)
+	pause_button.position = Vector2(6, 10)
+	pause_button.focus_mode = Control.FOCUS_NONE
+	pause_button.add_theme_font_size_override("font_size", 18)
+	pause_button.add_theme_color_override("font_color", Color(0.85, 0.95, 1.0))
+	for st in ["normal", "hover", "pressed"]:
+		var psb = StyleBoxFlat.new()
+		psb.bg_color = Color(0.02, 0.04, 0.1, 0.55 if st != "pressed" else 0.85)
+		psb.border_color = Color(0.0, 0.85, 1.0, 0.7)
+		psb.set_border_width_all(2)
+		psb.set_corner_radius_all(10)
+		pause_button.add_theme_stylebox_override(st, psb)
+	pause_button.pressed.connect(_pause_game)
+	ui.add_child(pause_button)
+
 	score_label = Label.new()
-	score_label.position = Vector2(12, 14)
-	score_label.add_theme_font_size_override("font_size", 22)
+	score_label.position = Vector2(58, 14)
+	score_label.add_theme_font_size_override("font_size", 21)
 	score_label.add_theme_color_override("font_color", Color(1.0, 0.85, 0.0))
 	ui.add_child(score_label)
 
 	var sound_vis = Node2D.new()
 	sound_vis.set_script(load("res://scripts/SoundButtonVisual.gd"))
 	sound_vis.name = "SoundVis"
-	sound_vis.position = Vector2(170, 37)
+	sound_vis.position = Vector2(182, 37)
 	if sound_vis.has_method("setup"):
 		sound_vis.setup(SoundManager.is_on())
 
 	var sound_btn = Button.new()
 	sound_btn.name = "SoundBtn"
 	sound_btn.size = Vector2(44, 44)
-	sound_btn.position = Vector2(148, 14)
+	sound_btn.position = Vector2(160, 14)
 	sound_btn.flat = true
 	sound_btn.text = ""
 	sound_btn.mouse_filter = Control.MOUSE_FILTER_STOP
@@ -773,10 +799,10 @@ func _setup_ui():
 	var lvl_color = Color(1.0, 0.9, 0.2, 1.0) if lum < 0.4 else Color(0.05, 0.05, 0.2, 1.0)
 	var lvl_shadow = Color(0.0, 0.0, 0.0, 0.8) if lum < 0.4 else Color(1.0, 1.0, 1.0, 0.6)
 
-	# Ses butonu x=148..192 aralığında; rozet onun sağından başlıyor
+	# Soldan: pause 6..50, skor, ses butonu 160..204; rozet onun sağından başlıyor
 	var lvl_badge = ColorRect.new()
-	lvl_badge.size = Vector2(130, 34)
-	lvl_badge.position = Vector2(200, 10)
+	lvl_badge.size = Vector2(118, 34)
+	lvl_badge.position = Vector2(212, 10)
 	lvl_badge.color = Color(lvl_color.r, lvl_color.g, lvl_color.b, 0.18)
 	ui.add_child(lvl_badge)
 
@@ -784,11 +810,11 @@ func _setup_ui():
 	var level_emojis = ["🔰","⚡","🔥","💎","🌊","🌙","🎯","🚀","👾","🏆","💥","🎮","🌀","☄️","🔮","💀","🌟","⚔️","🧨","🎖️"]
 	var emoji = level_emojis[level_number - 1] if level_number <= 20 else "🎮"
 	lvl_lbl.text = "%s LVL %d" % [emoji, level_number]
-	lvl_lbl.size = Vector2(130, 34)
-	lvl_lbl.position = Vector2(200, 10)
+	lvl_lbl.size = Vector2(118, 34)
+	lvl_lbl.position = Vector2(212, 10)
 	lvl_lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	lvl_lbl.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-	lvl_lbl.add_theme_font_size_override("font_size", 19)
+	lvl_lbl.add_theme_font_size_override("font_size", 18)
 	lvl_lbl.add_theme_color_override("font_color", lvl_color)
 	lvl_lbl.add_theme_color_override("font_shadow_color", lvl_shadow)
 	lvl_lbl.add_theme_constant_override("shadow_outline_size", 3)
@@ -796,12 +822,25 @@ func _setup_ui():
 
 	# Çentikli ekranlarda HUD'u güvenli alana indir
 	hud_top = ScreenUtil.safe_top(self)
-	for n in [score_label, sound_btn, sound_vis, total_score_label, lives_label, lvl_badge, lvl_lbl]:
+	for n in [pause_button, score_label, sound_btn, sound_vis, total_score_label, lives_label, lvl_badge, lvl_lbl]:
 		n.position.y += hud_top
 	hud_bg.offset_bottom += hud_top
 
+	indicators = Node2D.new()
+	indicators.name = "MagnetIndicators"
+	indicators.set_script(load("res://scripts/MagnetIndicators.gd"))
+	indicators.setup(self, d["pc"], hud_top + 64.0, level_number <= 5)
+	ui.add_child(indicators)
+
+	if level_number == 1 and not FileAccess.file_exists(TUTORIAL_FILE):
+		tutorial = Node2D.new()
+		tutorial.name = "Tutorial"
+		tutorial.set_script(load("res://scripts/TutorialOverlay.gd"))
+		ui.add_child(tutorial)
+
 	tap_hint = Label.new()
-	tap_hint.text = "TAP & HOLD to attract"
+	tap_hint.text = "TAP & HOLD near a magnet to fly to it"
+	tap_hint.visible = tutorial == null
 	tap_hint.set_anchors_preset(Control.PRESET_BOTTOM_WIDE)
 	tap_hint.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	tap_hint.position.y = -50
@@ -951,19 +990,165 @@ func _setup_ui():
 	menu_btn.add_theme_font_size_override("font_size", 14)
 	menu_btn.add_theme_color_override("font_color", Color(1.0, 0.55, 0.55, 1.0))
 	menu_btn.add_theme_color_override("font_hover_color", Color(1.0, 0.75, 0.75))
-	menu_btn.pressed.connect(func():
-		_save_total_score(0)
-		coins_since_last_life = 0
-		_save_lives(3)
-		get_tree().change_scene_to_file("res://scenes/MainMenu.tscn")
-	)
+	menu_btn.pressed.connect(_go_to_main_menu)
 	result_panel.add_child(menu_btn)
 
-	# Panel 854'lük tasarıma göre yerleşik; uzun ekranlarda ortaya al
+	_build_pause_panel(ui)
+
+	# Paneller 854'lük tasarıma göre yerleşik; uzun ekranlarda ortaya al
 	ui_dy = ScreenUtil.center_offset(self)
 	ScreenUtil.shift_children(result_panel, ui_dy)
+	ScreenUtil.shift_children(pause_panel, ui_dy)
 
 	_update_score_ui()
+
+func _build_pause_panel(ui: CanvasLayer):
+	pause_panel = ColorRect.new()
+	pause_panel.name = "PausePanel"
+	pause_panel.set_anchors_preset(Control.PRESET_FULL_RECT)
+	pause_panel.color = Color(0.0, 0.0, 0.03, 0.65)
+	pause_panel.visible = false
+	# Oyun duraklatılmışken de butonlar çalışsın
+	pause_panel.process_mode = Node.PROCESS_MODE_ALWAYS
+	ui.add_child(pause_panel)
+
+	var box = ColorRect.new()
+	box.size = Vector2(320, 270)
+	box.position = Vector2(80, 280)
+	box.color = Color(0.04, 0.05, 0.1, 0.96)
+	pause_panel.add_child(box)
+
+	var line = ColorRect.new()
+	line.size = Vector2(320, 3)
+	line.position = Vector2(80, 280)
+	line.color = Color(0.0, 0.85, 1.0, 1.0)
+	pause_panel.add_child(line)
+
+	var title = Label.new()
+	title.text = "PAUSED"
+	title.size = Vector2(320, 50)
+	title.position = Vector2(80, 296)
+	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	title.add_theme_font_size_override("font_size", 32)
+	title.add_theme_color_override("font_color", Color(0.3, 0.9, 1.0))
+	pause_panel.add_child(title)
+
+	var buttons = [
+		["▶  RESUME", Color(0.2, 1.0, 0.45), 360.0, 56.0, 20, _resume_game],
+		["🏠  MAIN MENU", Color(1.0, 0.35, 0.35), 430.0, 50.0, 16, _quit_from_pause],
+	]
+	for b in buttons:
+		var frame = Node2D.new()
+		frame.set_script(_get_sci_panel_script(b[1], 240, b[3]))
+		frame.position = Vector2(120, b[2])
+		pause_panel.add_child(frame)
+		var btn = Button.new()
+		btn.text = b[0]
+		btn.size = Vector2(240, b[3])
+		btn.position = Vector2(120, b[2])
+		btn.flat = true
+		btn.focus_mode = Control.FOCUS_NONE
+		btn.add_theme_font_size_override("font_size", b[4])
+		btn.add_theme_color_override("font_color", b[1].lightened(0.2))
+		btn.pressed.connect(b[5])
+		pause_panel.add_child(btn)
+
+	var note = Label.new()
+	note.text = "Main menu resets this run's score and lives"
+	note.size = Vector2(300, 24)
+	note.position = Vector2(90, 500)
+	note.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	note.add_theme_font_size_override("font_size", 12)
+	note.add_theme_color_override("font_color", Color(0.7, 0.75, 0.9, 0.8))
+	pause_panel.add_child(note)
+
+func _pause_game():
+	if not level_active or get_tree().paused or pause_panel == null:
+		return
+	active_touches.clear()
+	_deactivate_all_magnets()
+	pause_panel.visible = true
+	get_tree().paused = true
+
+func _resume_game():
+	pause_panel.visible = false
+	get_tree().paused = false
+
+func _quit_from_pause():
+	AnalyticsManager.design_event("Level:Quit:Level%02d" % level_number)
+	_go_to_main_menu()
+
+func _go_to_main_menu():
+	get_tree().paused = false
+	_save_total_score(0)
+	coins_since_last_life = 0
+	_save_lives(3)
+	get_tree().change_scene_to_file("res://scenes/MainMenu.tscn")
+
+func _notification(what):
+	# Uygulama arka plana atılınca oyunu duraklat; geri dönünce oyuncu RESUME'a bassın.
+	# FOCUS_OUT kullanılmıyor: bildirim perdesi vb. kısa odak kayıplarında da tetikleniyor.
+	if what == NOTIFICATION_APPLICATION_PAUSED:
+		_pause_game()
+
+# ─── TUTORIAL (Level 1, ilk kez bitirilene kadar) ────────────────────────────
+
+func _exit_magnet() -> Node2D:
+	var best = null
+	var best_d = INF
+	for m in magnets:
+		if not is_instance_valid(m):
+			continue
+		var dd = m.global_position.distance_to(exit_position)
+		if dd < best_d:
+			best_d = dd
+			best = m
+	return best
+
+# Oyuncunun bir sonraki adımda tutması gereken mıknatıs: üstündekilerin en yakını
+# (çıkış mıknatısı her zaman aday)
+func _tutorial_target(active: Node2D) -> Node2D:
+	var exit_m = _exit_magnet()
+	var py = player.global_position.y
+	var best = null
+	var best_d = INF
+	for m in magnets:
+		if not is_instance_valid(m) or m == active:
+			continue
+		if m.global_position.y >= py - 40.0 and m != exit_m:
+			continue
+		var dd = player.global_position.distance_to(m.global_position)
+		if dd < best_d:
+			best_d = dd
+			best = m
+	return best
+
+func _update_tutorial():
+	if tutorial == null:
+		return
+	if not level_active or player == null or not is_instance_valid(player) or player.is_dead:
+		tutorial.hide_all()
+		return
+	var active = player.active_magnet
+	if active != null and not is_instance_valid(active):
+		active = null
+	if active and player.global_position.distance_to(active.global_position) > 60.0:
+		tutorial.set_state("KEEP HOLDING...  let go to drop", false)
+		return
+	var target = _tutorial_target(active)
+	if target == null:
+		tutorial.hide_all()
+		return
+	var to_exit = target == _exit_magnet()
+	var marker = indicators.marker_pos_for(target) if indicators else null
+	if marker != null:
+		var t = "Magnet above! TAP THE ARROW" + (" to reach the EXIT 🚪" if to_exit and active else "")
+		tutorial.set_state(t, true, marker)
+		return
+	var txt = "TAP & HOLD the magnet to fly to it"
+	if active:
+		txt = "Now HOLD THIS ONE to reach the EXIT 🚪" if to_exit else "Now TAP & HOLD the next magnet"
+	tutorial.set_state(txt, true, get_canvas_transform() * target.global_position)
 
 func _get_sci_panel_script(accent: Color, w: float, h: float) -> GDScript:
 	var s = GDScript.new()
@@ -1045,16 +1230,16 @@ func _input(event):
 		return
 	if event is InputEventScreenTouch:
 		if event.pressed:
-			if _is_on_sound_button(event.position):
+			if _is_on_hud_button(event.position):
 				return
-			var m = _find_nearest_magnet(event.position)
+			var m = _pick_magnet(event.position)
 			if m:
 				active_touches[event.index] = m
 				m.activate(player)
 			if tap_hint:
 				tap_hint.visible = false
 		else:
-			if _is_on_sound_button(event.position):
+			if _is_on_hud_button(event.position):
 				return
 			active_touches.erase(event.index)
 			if active_touches.is_empty():
@@ -1065,18 +1250,35 @@ func _input(event):
 					last_magnet.activate(player)
 	elif event is InputEventMouseButton and event.button_index == MOUSE_BUTTON_LEFT:
 		if event.pressed:
-			if _is_on_sound_button(event.position):
+			if _is_on_hud_button(event.position):
 				return
-			_activate_nearest_magnet_at(event.position)
+			var mm = _pick_magnet(event.position)
+			if mm:
+				mm.activate(player)
 			if tap_hint:
 				tap_hint.visible = false
 		else:
-			if _is_on_sound_button(event.position):
+			if _is_on_hud_button(event.position):
 				return
 			_deactivate_all_magnets()
 
-func _is_on_sound_button(screen_pos: Vector2) -> bool:
-	return sound_button != null and sound_button.get_global_rect().has_point(screen_pos)
+func _is_on_hud_button(screen_pos: Vector2) -> bool:
+	for b in [sound_button, pause_button]:
+		if b != null and b.visible and b.get_global_rect().has_point(screen_pos):
+			return true
+	return false
+
+# Ekran kenarındaki oka dokunulduysa o mıknatıs, değilse dokunulan noktaya en yakın mıknatıs.
+# Ok, görünür bir mıknatısın yakınına düşebiliyor: dokunuşa hangisi daha yakınsa o seçilir.
+func _pick_magnet(screen_pos: Vector2) -> Node2D:
+	var nearest = _find_nearest_magnet(screen_pos)
+	if indicators and nearest:
+		var hit = indicators.magnet_at(screen_pos)
+		if hit.size() > 0:
+			var nearest_screen = get_canvas_transform() * nearest.global_position
+			if hit["dist"] < screen_pos.distance_to(nearest_screen):
+				return hit["magnet"]
+	return nearest
 
 func _find_nearest_magnet(screen_pos: Vector2) -> Node2D:
 	if not player or player.is_dead:
@@ -1092,11 +1294,6 @@ func _find_nearest_magnet(screen_pos: Vector2) -> Node2D:
 			nearest_dist = d
 			nearest = m
 	return nearest
-
-func _activate_nearest_magnet_at(screen_pos: Vector2):
-	var m = _find_nearest_magnet(screen_pos)
-	if m:
-		m.activate(player)
 
 func _deactivate_all_magnets():
 	for m in magnets:
@@ -1164,6 +1361,8 @@ func _on_player_died():
 	if not level_active:
 		return
 	level_active = false
+	if pause_button:
+		pause_button.visible = false
 	var hero_names = ["Cyborg", "Pink", "Shadow", "Mech", "Blaze"]
 	AnalyticsManager.level_fail(level_number, hero_names[HeroManager.get_hero()], coins_collected)
 	_deactivate_all_magnets()
@@ -1186,6 +1385,13 @@ func _on_level_complete():
 	if not level_active:
 		return
 	level_active = false
+	if pause_button:
+		pause_button.visible = false
+	if tutorial != null:
+		var tf = FileAccess.open(TUTORIAL_FILE, FileAccess.WRITE)
+		if tf:
+			tf.store_8(1)
+		AnalyticsManager.design_event("Tutorial:Complete")
 	var hero_names = ["Cyborg", "Pink", "Shadow", "Mech", "Blaze"]
 	var hero_name = hero_names[HeroManager.get_hero()]
 	AnalyticsManager.level_complete(level_number, hero_name, _calculate_stars(), coins_collected)
