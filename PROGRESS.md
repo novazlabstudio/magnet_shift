@@ -10,7 +10,7 @@ Bu dosya başka bir bilgisayarda devam edecek Claude oturumu için yazıldı. Ö
 - **Mağazada yayında:** https://play.google.com/store/apps/details?id=com.novazlabstudio.magnetshift
 - **Paket:** `com.novazlabstudio.magnetshift`. Geliştirici hesabı: novazlabstudio@gmail.com (Play Console, AdMob, GameAnalytics, GitHub aynı marka altında).
 - **Repo:** https://github.com/novazlabstudio/magnet_shift (dal `main`).
-- **Şu an:** 1.0.1 production'da. **1.0.2 (version code 3)** derlendi; kullanıcı 2026-11-02'de Production'a yükleyip incelemeye gönderiyordu. Yeni oturumda ilk iş: Play Console → Publishing overview'da 1.0.2'nin "Changes in review" altında olduğunu, ya da yayınlandığını teyit et.
+- **Şu an:** 1.0.1 production'da. **1.0.2 (version code 3)** 2026-11-02'de Production'a yüklendi ve **incelemeye gönderildi** (Publishing overview → "Changes in review" altında görüldü). Managed publishing kapalı; onaylanınca otomatik yayınlanır. Yeni oturumda ilk iş: yayınlanıp yayınlanmadığını kontrol et.
 
 ## 2. Sürüm geçmişi
 
@@ -18,7 +18,7 @@ Bu dosya başka bir bilgisayarda devam edecek Claude oturumu için yazıldı. Ö
 |---|---|---|---|
 | 1.0.0 | 1 | Closed testing (Alpha) | İlk sürüm. 12+ tester ile 14 gün kapalı test bu sürümle yapıldı. |
 | 1.0.1 | 2 | Production (2026-10-29'da gönderildi, onaylandı) | Mac oturumunda yapılan düzeltmeler: Level 20→21 zinciri, platform x yorumu, bekçilerin düşmesi, zemin altına düşen mıknatıslar, MECH seçiminin kaybolması, kapı animasyonu; uzun ekran desteği (`keep_width`, çentik payı); Game Over'da "CONTINUE +3 ❤️"; ZAPPED/CAUGHT mesajı; müzik döngüsü; 5. kahraman BLAZE (3 ödüllü reklamla açılır). INTERNET ve ACCESS_NETWORK_STATE izinleri açıkça etkinleştirildi. |
-| 1.0.2 | 3 | Production'a gönderiliyor (2026-11-02) | Kullanıcı geri bildirimine göre: Level 1 eğitimi, ekran dışı mıknatıs okları, pause butonu (ayrıntı bölüm 3). |
+| 1.0.2 | 3 | Production incelemesinde (2026-11-02 gönderildi) | Kullanıcı geri bildirimine göre: Level 1 eğitimi, ekran dışı mıknatıs okları, pause butonu (ayrıntı bölüm 3). |
 | sonraki | **4** | — | Bir sonraki yüklemede `export_presets.cfg` → `version/code=4`. |
 
 ## 3. 1.0.2'de ne yapıldı (2026-11-02)
@@ -33,9 +33,9 @@ Oyuncu geri bildirimi: (a) mıknatısa dokunmaları gerektiğini anlamıyorlar, 
 
 ## 4. Açık işler
 
-1. 1.0.2'nin Play Console'da incelemede/yayında olduğunu teyit et. Release taslakta kalmış olabilir (1.0.1'de olmuştu, bkz. bölüm 7).
+1. 1.0.2'nin onaylanıp yayınlandığını kontrol et (incelemeye gönderildiği teyit edildi). Bir tester'da Ayarlar → Uygulamalar → Magnet Shift sürümü 1.0.2 görünmeli.
 2. Yayından sonra kullanıcı geri bildirimini topla. Özellikle eğitimin ve okların anlaşılıp anlaşılmadığına GA'dan bak: `Tutorial:Complete` ve Level 1-5 Fail/Complete oranları, `Level:Quit:*`.
-3. Closed testing - Alpha track'i isteğe bağlı olarak "Pause track" ile durdurulabilir (zorunlu değil; testerlar zaten production sürümünü alıyor).
+3. Closed testing - Alpha track'i isteğe bağlı olarak "Pause track" ile durdurulabilir (zorunlu değil). Testerlar Play Store'da "(Beta)" etiketi görüyor ama en yüksek version code kuralı gereği zaten production sürümünü alıyorlar (Alpha'da code 1 var). Etiketi kaldırmak isteyen tester opt-in linkinden ya da Play Store sayfasındaki "Leave" ile programdan çıkabilir; uygulama silinmez.
 4. Kullanıcı ayrı bir **İHA oyunu** yaptı ve kapalı teste açacak. O oyun için **yeni bir Google Group** açılmalı (`magnet-shift-testers` kullanılmamalı). Play Console'da her uygulamanın track'leri ve 12 tester / 14 gün şartı ayrı, birbirine karışmaz. Paket adı `com.novazlabstudio.<oyunadi>` olmalı; AdMob'da ayrı app kaydı açılmalı (CLAUDE.md).
 5. Keystore yedeği: bölüm 5'e bak.
 
