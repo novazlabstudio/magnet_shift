@@ -40,9 +40,30 @@ func _load_and_show_consent_form() -> void:
 func _init_sdk() -> void:
 	var on_init_listener := OnInitializationCompleteListener.new()
 	on_init_listener.on_initialization_complete = func(_status: InitializationStatus) -> void:
+		_release_plugin_callbacks.call_deferred()
 		_preload_rewarded_ad()
 	MobileAds.set_request_configuration(RequestConfiguration.new())
 	MobileAds.initialize(on_init_listener)
+
+# Kapanış çökmesinin önlemi (Play Console: SIGABRT recursive_mutex::lock, 1.0.2).
+# AdMob eklentisi bu dosyadaki lambda'ları kendi STATIC değişkenlerinde saklıyor
+# (MobileAds init dinleyicisi, UserMessagingPlatform.consent_information ve form geri çağrıları).
+# Uygulama kapanırken Godot (Main::cleanup -> GDScript::clear) bu static'leri temizlerken
+# AdManager.gd betiği bazen önce silinmiş oluyor; lambda yok edilirken silinmiş betiğin
+# mutex'i kilitlenip uygulama çöküyor. Geri çağrılar işini bitirince ve en geç ağaçtan
+# çıkarken bu referansları bırakıyoruz; böylece kapanışta static'lerde lambda kalmıyor.
+func _release_plugin_callbacks() -> void:
+	MobileAds._current_on_initialization_complete_listener = null
+	UserMessagingPlatform._on_consent_form_load_success_listener_callback = null
+	UserMessagingPlatform._on_consent_form_load_failure_listener_callback = null
+	UserMessagingPlatform._on_privacy_options_form_dismissed_callback = null
+	var ci = UserMessagingPlatform.consent_information
+	if ci:
+		ci._on_consent_info_updated_success_callback = null
+		ci._on_consent_info_updated_failure_callback = null
+
+func _exit_tree() -> void:
+	_release_plugin_callbacks()
 
 func _preload_rewarded_ad() -> void:
 	if _is_loading or _rewarded_ad:
