@@ -13,6 +13,11 @@ Bu dosya başka bir bilgisayarda devam edecek Claude oturumu için yazıldı. Ö
 - Masaüstünde (Godot 4.6.3, 480x854 / 480x1040) test edildi: 50 level hatasız açılıyor, akışlar (level geçişi, retry, game over, board, Polaris kilidi) çalışıyor. **Telefonda henüz denenmedi**; sesler sentetik, cihazda dinlenmeli.
 - 1.1.0 (code 4) 2026-11-06'da **bu Mac'ten** derlenip Production'a gönderildi (isim/açıklamalar/7 ekran görüntüsü aynı incelemede). Managed publishing kapalı: onaylanınca kendiliğinden yayına girer. Sonraki yükleme `version/code=5` olmalı.
 
+## 2026-11-06 (3) — Kapanış çökmesi düzeltildi (sonraki sürüme, code 5)
+- Play Console'da 1.0.2'de 2 adet `SIGABRT recursive_mutex::lock` (1'er kullanıcı). Godot 4.6.3 resmi sembolleriyle çözüldü: `Main::cleanup -> GDScriptLanguage::finish -> GDScript::clear -> ... GDScript::UpdatableFuncPtr::~UpdatableFuncPtr`. Yani oyun kapanırken, AdMob eklentisinin static değişkenlerinde kalan AdManager lambda'ları silinirken çöküyor (oyuncu fark etmez ama oranı etkiler).
+- Düzeltme `AdManager._release_plugin_callbacks()` (commit 66d6f2b): 1.1.0 (code 4) incelemedeyken yapıldı, o AAB'de YOK. Bir sonraki sürümle gider.
+- Semboller: `godotengine/godot-builds` release 4.6.3-stable → `Godot_native_debug_symbols.4.6.3.stable.template_release.android.zip` (arm64 `libgodot_android.so`). NDK yok; ELF .symtab'tan Python ile adres → fonksiyon çözüldü.
+
 ## 2026-11-06 (2) — Ana sayfa, geri getirme, değerlendirme, mağaza metni
 - Ana sayfa: Orbitron başlık, sade dekor, üst çubuk (BOARD/AWARDS/ses/LEVELS), CONTINUE + NEW GAME, günlük seri rozeti.
 - Geri getirme: 18 yerel ödül + bildirimler, günlük seri (Progress.gd). Google Play Games yok → ücret/form yok.
