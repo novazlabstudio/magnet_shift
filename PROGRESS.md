@@ -1,6 +1,6 @@
 # Magnet Shift — Durum ve Devam Notu
 
-Son güncelleme: 2026-11-02 (Windows PC oturumu)
+Son güncelleme: 2026-11-06 (Mac oturumu)
 
 Bu dosya başka bir bilgisayarda devam edecek Claude oturumu için yazıldı. Önce bunu, sonra teknik kurallar için [CLAUDE.md](CLAUDE.md)'yi oku. Kullanıcıyla Türkçe konuş; oyun içi metinler her zaman İngilizce.
 
@@ -11,7 +11,7 @@ Bu dosya başka bir bilgisayarda devam edecek Claude oturumu için yazıldı. Ö
 4. **Çıkış kapısı:** kamera odağı, spiral çekilme, ışık sütunu, patlama + başarı zili; yeni level'de "LEVEL N / TEMA" başlığı ve ışınlanma.
 5. **BOARD hatası:** kök neden kaydın yalnızca game over/Level 50'de yazılmasıydı. Artık her koşu tek satır, her level bitişinde güncelleniyor; eski kayıtlar taşındı.
 - Masaüstünde (Godot 4.6.3, 480x854 / 480x1040) test edildi: 50 level hatasız açılıyor, akışlar (level geçişi, retry, game over, board, Polaris kilidi) çalışıyor. **Telefonda henüz denenmedi**; sesler sentetik, cihazda dinlenmeli.
-- AAB bu Mac'te derlenemez: release keystore Windows PC'de.
+- 1.1.0 (code 4) 2026-11-06'da **bu Mac'ten** derlenip Production'a gönderildi (isim/açıklamalar/7 ekran görüntüsü aynı incelemede). Managed publishing kapalı: onaylanınca kendiliğinden yayına girer. Sonraki yükleme `version/code=5` olmalı.
 
 ## 2026-11-06 (2) — Ana sayfa, geri getirme, değerlendirme, mağaza metni
 - Ana sayfa: Orbitron başlık, sade dekor, üst çubuk (BOARD/AWARDS/ses/LEVELS), CONTINUE + NEW GAME, günlük seri rozeti.
@@ -57,12 +57,12 @@ Oyuncu geri bildirimi: (a) mıknatısa dokunmaları gerektiğini anlamıyorlar, 
 
 ## 5. Bilgisayarlar ve derleme
 
-**Release keystore yalnızca Windows PC'de:** `C:\dgn\magnet_shift\keystore\release.keystore` (alias `magnetshift`). Git'te yok (`.gitignore`). Parolalar sadece kullanıcıda ve Godot'nun `.godot/export_credentials.cfg` dosyasında (o da Git'te yok). Başka bir bilgisayarda release `.aab` derlemek için keystore dosyasını oraya kopyalayıp Godot'da Project → Export → Android → Keystore (Release) alanlarına yolu, alias'ı ve parolayı girmek gerekir. Keystore kaybolursa güncelleme yüklenemez (Play App Signing açık olduğu için Google'a upload key sıfırlama başvurusu yapılabilir ama zahmetli). Kullanıcıya bulut/harici disk yedeğini hatırlat. Upload sertifikası SHA-256: `6C:C3:CF:F6:3A:7D:B7:5B:89:0E:50:73:0F:AE:E1:9B:4D:78:25:2D:E0:C6:9B:97:B9:19:FC:ED:D3:84:13:3B`.
+**Yayın derlemesi 2026-11-06'dan beri Mac'te (`./tools/build_aab.sh`).** Keystore: `~/MagnetShift-imza/release.keystore` (alias `magnetshift`, dosya SHA-256 `387e9a00…fc08dbc`); parola `~/MagnetShift-imza/imza_bilgileri.txt` içinde (repo dışında, chmod 600; içeriğini okuma/yazdırma). Betik Godot 4.6.3 (`/Applications/Godot 4.6.app`) ile `~/Desktop/MagnetShift_<ad>_code<kod>.aab` üretir, imzayı ve 16 KB hizalamayı doğrular. Windows PC'de artık AAB derlenmez (sürüm kodu çakışmasın). Keystore kaybolursa güncelleme yüklenemez (upload key sıfırlama zahmetli); kullanıcıya bulut/harici disk yedeğini hatırlat. Upload sertifikası SHA-256: `6C:C3:CF:F6:3A:7D:B7:5B:89:0E:50:73:0F:AE:E1:9B:4D:78:25:2D:E0:C6:9B:97:B9:19:FC:ED:D3:84:13:3B`.
 
-**Windows PC ortamı:**
+**Windows PC ortamı (eski, artık yayın derlemesi yapılmıyor):**
 - Proje: `C:\dgn\magnet_shift`. Godot 4.6.3 + aynı sürüm export şablonları: `C:\dgn\Godot_v4.6.3-stable_win64.exe\Godot_v4.6.3-stable_win64_console.exe`. Android build şablonu `android/build` (4.6.3.stable, Git'te yok). Android Studio + SDK kurulu; `keytool`: `C:\Program Files\Android\Android Studio\jbr\bin\keytool.exe`.
 - Çıktılar `C:\dgn\` altında: `Magnet Shift.aab` (en son sürüm, şu an 1.0.2), `Magnet Shift 1.0.0.aab`, `Magnet Shift 1.0.1.aab`, `MagnetShift_1.0.2_test.apk` (debug).
-- Mac'te Godot 4.4.1 var (proje 4.6 ile kaydedilmiş); Mac'ten release derlenmedi.
+- Mac'te iki Godot var: 4.6.3 (`/Applications/Godot 4.6.app`, bu proje) ve 4.4.1 (`/Applications/Godot.app`, diğer oyunlar; bu projeyi onunla açma).
 
 **Derleme komutları (Git Bash, proje klasöründe):**
 - Import: `"$G" --headless --path . --import`
