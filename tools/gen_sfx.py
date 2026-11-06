@@ -240,6 +240,19 @@ def beam_in():
     return out
 
 
+def trophy():
+    dur = 0.9
+    n = int(SR * dur)
+    notes = [(1568.0, 0.0), (2093.0, 0.07)]
+    out = []
+    for i in range(n):
+        t = i / SR
+        s = sum(bell(f, t - st) for f, st in notes)
+        s += math.sin(2 * math.pi * 3520 * t) * math.exp(-max(0.0, t - 0.1) * 7) * 0.12 if t > 0.1 else 0
+        out.append(s)
+    return out
+
+
 if __name__ == "__main__":
     write("hero_ahh", hero_ahh())
     write("zap", zap())
@@ -247,3 +260,4 @@ if __name__ == "__main__":
     write("portal", portal(), peak=0.7)
     write("level_clear", level_clear(), peak=0.75)
     write("beam_in", beam_in(), peak=0.55)
+    write("trophy", trophy(), peak=0.6)

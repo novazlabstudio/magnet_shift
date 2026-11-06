@@ -841,7 +841,8 @@ func _setup_ui():
 	status_label.position = Vector2(70, 298)
 	status_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	status_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-	status_label.add_theme_font_size_override("font_size", 32)
+	status_label.add_theme_font_override("font", UIFont.title(2))
+	status_label.add_theme_font_size_override("font_size", 24)
 	status_label.add_theme_constant_override("shadow_outline_size", 8)
 	result_panel.add_child(status_label)
 
@@ -1290,6 +1291,7 @@ func _on_coin_collected(_value: int):
 	coins_collected += 1
 	total_score += 1
 	coins_since_last_life += 1
+	Progress.on_coin()
 	_vibrate(30)
 	if coins_since_last_life >= 5:
 		coins_since_last_life = 0
@@ -1317,6 +1319,7 @@ func _play_level_intro() -> void:
 	title.text = "LEVEL %d" % level_number
 	title.position = Vector2(0, 0)
 	title.size = Vector2(480, 64)
+	title.add_theme_font_override("font", UIFont.title(4))
 	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	title.add_theme_font_size_override("font_size", 50)
 	title.add_theme_color_override("font_color", Color(1, 1, 1))
@@ -1327,11 +1330,12 @@ func _play_level_intro() -> void:
 	box.add_child(title)
 	var sub = Label.new()
 	# tema adı harfleri aralıklı: "D E E P  O C E A N"
-	sub.text = " ".join(backdrop.theme_title.split("")) if backdrop else ""
+	sub.text = backdrop.theme_title if backdrop else ""
 	sub.position = Vector2(0, 64)
 	sub.size = Vector2(480, 24)
 	sub.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	sub.add_theme_font_size_override("font_size", 15)
+	sub.add_theme_font_override("font", UIFont.title(5))
+	sub.add_theme_font_size_override("font_size", 13)
 	sub.add_theme_color_override("font_color", accent)
 	sub.add_theme_color_override("font_outline_color", Color(0, 0, 0, 0.8))
 	sub.add_theme_constant_override("outline_size", 4)
@@ -1433,6 +1437,7 @@ func _on_player_died():
 		pause_button.visible = false
 	var hero_names = HeroManager.HERO_NAMES
 	AnalyticsManager.level_fail(level_number, hero_names[HeroManager.get_hero()], coins_collected)
+	Progress.on_death(player.death_cause if player else "")
 	_deactivate_all_magnets()
 	lives -= 1
 	if lives <= 0:
@@ -1472,6 +1477,9 @@ func _on_level_complete():
 		_save_max_level(min(level_number + 1, 50))
 	var stars = _calculate_stars()
 	_save_stars(level_number, stars)
+	# Ödüller / günlük seri; sonuç ekranı otururken (iyi bir anda) değerlendirme isteği
+	Progress.on_level_complete(level_number, stars, _load_all_stars(), total_score)
+	get_tree().create_timer(1.8).timeout.connect(func(): Progress.maybe_request_review(level_number, stars))
 	if next_level_path == "":
 		var is_new_record = total_score > 0 and lb_entries.size() > 0 and Leaderboard.is_current_run(lb_entries[0])
 		_show_result(true, is_new_record, stars)
@@ -1618,6 +1626,7 @@ func _show_game_over(is_new_record: bool = false):
 
 	var title = Label.new()
 	title.text = "GAME OVER"
+	title.add_theme_font_override("font", UIFont.title(4))
 	title.set_anchors_preset(Control.PRESET_TOP_WIDE)
 	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	title.position.y = 128

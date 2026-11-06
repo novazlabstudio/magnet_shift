@@ -78,3 +78,22 @@ GDScript'te (Godot 4) aynı fonksiyon içindeki iki ayrı lambda, dışarıdaki 
 - Her koşu (Level 1'den ya da sıfırlanan skorla başlayan oyun) tek satır; `user://current_run.txt` koşu kimliği. Satır her level bitişinde ve game over'da `Leaderboard.record` ile güncellenir; skor sıfırlayan her yer `GameManager._reset_run()` kullanır (yeni koşu açar).
 - Eski hata: kayıt yalnızca game over'da ve Level 50 bitince yazılıyordu; MAIN MENU / RESTART / PLAY / uygulamayı kapatma skoru kaydetmeden siliyordu → tablo neredeyse hiç dolmuyordu.
 - Dosya `user://leaderboard.json`; eski ikili `leaderboard.dat` ilk okumada taşınır (silinmez). En iyi 5, 0 puan yazılmaz.
+
+## Ana Sayfa (1.1.0)
+- Üst çubuk: BOARD (skor tablosu), AWARDS (ödüller), ses simgesi, LEVELS. Ses eskiden PLAY altında büyük butondu.
+- Başlık ve butonlar Orbitron (`fonts/Orbitron-Bold.ttf`, SIL OFL) — `UIFont.title(harf_aralığı)`. Başlıktaki tarayıcı çizgi/kesikli ayraç/köşe parantezleri kaldırıldı.
+- `max_level > 1` ise ana buton "CONTINUE" (en yüksek açık level'den başlar) + küçük "NEW GAME" (Level 1). Değilse "PLAY".
+
+## Oyuncuyu Geri Getirme (`Progress.gd`, autoload) — tamamen yerel
+- Google Play Games kullanılmadı (ek kurulum/form istemesin diye). Veriler `user://progress.json`.
+- AWARDS: 18 yerel ödül (`Progress.AWARDS`), açılınca üstten bildirim + `trophy` sesi; GA olayı `Award:<id>`. Ödüller oyun içi avantaj vermez (reklam gelirini azaltmasın diye).
+- Günlük seri: o gün en az bir level bitirilince sayılır; ana sayfada "🔥 N-DAY STREAK" rozeti.
+- Kancalar: `GameManager._on_coin_collected` → `on_coin`, `_on_level_complete` → `on_level_complete`, `_on_player_died` → `on_death`, menüde reklamla kahraman açılınca `on_hero_unlocked`.
+
+## Oyun İçi Değerlendirme (Google Play In-App Review, ücretsiz)
+- Godot Android eklentisi (v2): kaynak `android_plugins/inapp_review/` (Java), derleme `tools/build_inapp_review.sh` → `addons/inapp_review/bin/InAppReview-release.aar` (commit'li). Export eklentisi `addons/inapp_review/export_plugin.gd` AAR'ı ve `com.google.android.play:review:2.0.2` bağımlılığını ekler; `project.godot` editor_plugins'te etkin olmalı.
+- GDScript: `Progress.maybe_request_review(level, stars)` — Level ≥5 ve ≥2 yıldızda, en fazla 3 kez, aralarında ≥21 gün; sonuç ekranından 1.8 sn sonra. "Beğendin mi?" ara sorusu YOK (Google politikası). Pencereyi göstermeye Google karar verir; yalnızca Play'den kurulan sürümde çalışır.
+- Doğrulandı: APK'da eklenti sınıfı + kayıt var, izin listesi önceki sürümle birebir aynı (Data safety değişmez).
+
+## Mağaza Sayfası
+- Metinler `docs/STORE_LISTING.md` (başlık/kısa/uzun açıklama, karakter sınırları kontrollü). Ekran görüntüleri 1080x1920 (Play 2:1 oran sınırı: 720x1560 kabul edilmez).

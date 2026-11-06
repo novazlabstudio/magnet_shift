@@ -1,0 +1,24 @@
+// Magnet Shift — Google Play In-App Review için Godot Android eklentisi (v2).
+// Derleme: ../../tools/build_inapp_review.sh  ->  addons/inapp_review/bin/InAppReview-release.aar
+plugins {
+    id 'com.android.library' version '8.6.1'
+}
+
+android {
+    namespace 'com.novazlabstudio.inappreview'
+    compileSdk 36
+    defaultConfig {
+        minSdk 24
+    }
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_17
+        targetCompatibility JavaVersion.VERSION_17
+    }
+}
+
+dependencies {
+    // Godot motoru oyunun kendisinde var; burada sadece derleme için (uygulamaya eklenmez)
+    compileOnly files('libs/godot-lib.template_release.aar')
+    // Uygulamaya Godot export eklentisi ekliyor (addons/inapp_review/export_plugin.gd)
+    compileOnly 'com.google.android.play:review:2.0.2'
+}

@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+    <application>
+        <!-- Godot v2 eklenti kaydı: ad Engine.get_singleton("InAppReview") ile eşleşir -->
+        <meta-data
+            android:name="org.godotengine.plugin.v2.InAppReview"
+            android:value="com.novazlabstudio.inappreview.InAppReviewPlugin" />
+    </application>
+</manifest>

@@ -36,6 +36,7 @@ SoundManager="*res://scripts/SoundManager.gd"
 LevelTransition="*res://scripts/LevelTransition.gd"
 HeroManager="*res://scripts/HeroManager.gd"
 AnalyticsManager="*res://scripts/AnalyticsManager.gd"
+Progress="*res://scripts/Progress.gd"
 
 [display]
 
@@ -48,7 +49,7 @@ window/handheld/orientation=1
 
 [editor_plugins]
 
-enabled=PackedStringArray("res://addons/admob/plugin.cfg")
+enabled=PackedStringArray("res://addons/admob/plugin.cfg", "res://addons/inapp_review/plugin.cfg")
 
 [rendering]
 environment/defaults/default_clear_color=Color(0.02, 0.02, 0.07, 1)

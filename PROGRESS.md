@@ -13,6 +13,13 @@ Bu dosya başka bir bilgisayarda devam edecek Claude oturumu için yazıldı. Ö
 - Masaüstünde (Godot 4.6.3, 480x854 / 480x1040) test edildi: 50 level hatasız açılıyor, akışlar (level geçişi, retry, game over, board, Polaris kilidi) çalışıyor. **Telefonda henüz denenmedi**; sesler sentetik, cihazda dinlenmeli.
 - AAB bu Mac'te derlenemez: release keystore Windows PC'de.
 
+## 2026-11-06 (2) — Ana sayfa, geri getirme, değerlendirme, mağaza metni
+- Ana sayfa: Orbitron başlık, sade dekor, üst çubuk (BOARD/AWARDS/ses/LEVELS), CONTINUE + NEW GAME, günlük seri rozeti.
+- Geri getirme: 18 yerel ödül + bildirimler, günlük seri (Progress.gd). Google Play Games yok → ücret/form yok.
+- Oyun içi değerlendirme: kendi Godot Android eklentimiz (Play In-App Review). İzinler değişmedi.
+- Mağaza metni `docs/STORE_LISTING.md`; yeni ekran görüntüleri `~/Desktop/MagnetShift_Store_1.1.0/`.
+- 14 günlük test yeniden GEREKMEZ (bir kerelikti); güncelleme doğrudan production incelemesine gider.
+
 ## 1. Kısa özet
 
 - **Oyun:** Magnet Shift. Godot 4.6, dikey mobil oyun, 50 level. Dokunduğun noktaya en yakın mıknatıs, parmak basılı kaldıkça oyuncuyu çeker. Coin topla, lazer ve bekçiden kaç, çıkış kapısına ulaş.

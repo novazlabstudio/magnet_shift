@@ -69,117 +69,104 @@ func _build():
 # ── Logo ──
 	var logo = Node2D.new()
 	logo.set_script(_get_logo_script())
-	logo.position = Vector2(240, 110)
+	logo.position = Vector2(240, 126)
+	logo.scale = Vector2(1.08, 1.08)
 	ui.add_child(logo)
 
 	# ── Başlık arka dekor (dönen halka + parçacık) ──
 	var title_decor = Node2D.new()
 	title_decor.set_script(_get_title_decor_script())
-	title_decor.position = Vector2(240, 234)
+	title_decor.position = Vector2(240, 262)
 	ui.add_child(title_decor)
 
-	# ── Leaderboard butonu - sol üst (sci-fi panel) ──
-	var lb_panel = Node2D.new()
-	lb_panel.set_script(_get_hud_button_script("trophy", Color(1.0, 0.75, 0.0)))
-	lb_panel.position = Vector2(14, 14)
-	ui.add_child(lb_panel)
-	var lb_lbl = Label.new()
-	lb_lbl.text = "BOARD"
-	lb_lbl.size = Vector2(90, 22)
-	lb_lbl.position = Vector2(14, 40)
-	lb_lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	lb_lbl.add_theme_font_size_override("font_size", 11)
-	lb_lbl.add_theme_color_override("font_color", Color(1.0, 0.8, 0.0, 0.9))
-	ui.add_child(lb_lbl)
-	var lb_btn = Button.new()
-	lb_btn.size = Vector2(90, 52)
-	lb_btn.position = Vector2(14, 14)
-	lb_btn.flat = true
-	lb_btn.text = ""
-	lb_btn.pressed.connect(func(): _show_leaderboard(ui))
-	ui.add_child(lb_btn)
-
-	# ── Levels butonu - sağ üst (sci-fi panel) ──
+	# ── Üst çubuk: BOARD, AWARDS · ses · LEVELS ──
 	var max_lvl = _load_max_level()
-	var lv_panel = Node2D.new()
-	lv_panel.set_script(_get_hud_button_script("portal", Color(0.3, 1.0, 0.5)))
-	lv_panel.position = Vector2(376, 14)
-	ui.add_child(lv_panel)
-	var lv_lbl = Label.new()
-	lv_lbl.text = "LVL %d" % max_lvl
-	lv_lbl.size = Vector2(90, 22)
-	lv_lbl.position = Vector2(376, 40)
-	lv_lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	lv_lbl.add_theme_font_size_override("font_size", 11)
-	lv_lbl.add_theme_color_override("font_color", Color(0.3, 1.0, 0.4, 0.9))
-	ui.add_child(lv_lbl)
-	var lv_btn = Button.new()
-	lv_btn.size = Vector2(90, 52)
-	lv_btn.position = Vector2(376, 14)
-	lv_btn.flat = true
-	lv_btn.text = ""
-	lv_btn.pressed.connect(func(): _show_level_select(ui))
-	ui.add_child(lv_btn)
+	var top_bar = []
+	top_bar.append_array(_top_button(ui, Vector2(14, 14), 84.0, "podium", Color(1.0, 0.75, 0.0), "BOARD", func(): _show_leaderboard(ui)))
+	top_bar.append_array(_top_button(ui, Vector2(104, 14), 84.0, "trophy", Color(1.0, 0.5, 0.85), "AWARDS", func(): _show_awards(ui)))
+	top_bar.append_array(_top_button(ui, Vector2(382, 14), 84.0, "portal", Color(0.3, 1.0, 0.5), "LEVELS", func(): _show_level_select(ui)))
+	# Ses: eskiden PLAY'in altında büyük butondu; artık üst çubukta küçük simge
+	var snd_panel = Node2D.new()
+	snd_panel.set_script(_get_hud_button_script("none", Color(0.0, 0.75, 1.0), 52.0))
+	snd_panel.position = Vector2(324, 14)
+	ui.add_child(snd_panel)
+	var sound_vis = Node2D.new()
+	sound_vis.set_script(load("res://scripts/SoundButtonVisual.gd"))
+	sound_vis.name = "SoundVis"
+	sound_vis.position = Vector2(350, 42)
+	if sound_vis.has_method("setup"):
+		sound_vis.setup(SoundManager.is_on())
+	ui.add_child(sound_vis)
+	sound_btn = Button.new()
+	sound_btn.name = "SoundBtn"
+	sound_btn.size = Vector2(52, 56)
+	sound_btn.position = Vector2(324, 14)
+	sound_btn.flat = true
+	sound_btn.focus_mode = Control.FOCUS_NONE
+	sound_btn.pressed.connect(_on_sound_toggle)
+	ui.add_child(sound_btn)
+	top_bar.append_array([snd_panel, sound_vis, sound_btn])
 
-	# ── MAGNET ──
+	# ── Başlık: Orbitron, iki satır (süs çizgileri kaldırıldı: harflerin üstünden geçiyorlardı) ──
 	title_lbl = Label.new()
-	title_lbl.text = "M A G N E T"
-	title_lbl.set_anchors_preset(Control.PRESET_TOP_WIDE)
+	title_lbl.text = "MAGNET"
+	title_lbl.position = Vector2(0, 192)
+	title_lbl.size = Vector2(480, 72)
 	title_lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	title_lbl.position = Vector2(0, 200)
-	title_lbl.add_theme_font_size_override("font_size", 58)
+	title_lbl.add_theme_font_override("font", UIFont.title(6))
+	title_lbl.add_theme_font_size_override("font_size", 54)
 	title_lbl.add_theme_color_override("font_color", Color(0.55, 0.95, 1.0, 1.0))
 	title_lbl.add_theme_color_override("font_shadow_color", Color(0.0, 0.55, 1.0, 0.9))
-	title_lbl.add_theme_constant_override("shadow_outline_size", 14)
+	title_lbl.add_theme_constant_override("shadow_outline_size", 16)
 	title_lbl.add_theme_constant_override("outline_size", 6)
 	title_lbl.add_theme_color_override("font_outline_color", Color(0.0, 0.15, 0.3, 1.0))
 	ui.add_child(title_lbl)
 
-	# ── SHIFT ──
 	shift_lbl = Label.new()
-	shift_lbl.text = "S H I F T"
-	shift_lbl.set_anchors_preset(Control.PRESET_TOP_WIDE)
+	shift_lbl.text = "SHIFT"
+	shift_lbl.position = Vector2(0, 258)
+	shift_lbl.size = Vector2(480, 72)
 	shift_lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	shift_lbl.position = Vector2(0, 266)
-	shift_lbl.add_theme_font_size_override("font_size", 58)
+	shift_lbl.add_theme_font_override("font", UIFont.title(14))
+	shift_lbl.add_theme_font_size_override("font_size", 54)
 	shift_lbl.add_theme_color_override("font_color", Color(1.0, 1.0, 1.0, 1.0))
 	shift_lbl.add_theme_color_override("font_shadow_color", Color(0.85, 0.3, 1.0, 0.85))
-	shift_lbl.add_theme_constant_override("shadow_outline_size", 12)
+	shift_lbl.add_theme_constant_override("shadow_outline_size", 14)
 	shift_lbl.add_theme_constant_override("outline_size", 6)
 	shift_lbl.add_theme_color_override("font_outline_color", Color(0.25, 0.0, 0.3, 1.0))
 	ui.add_child(shift_lbl)
 
-	# ── Başlık teknik çerçeve / dekor çizgileri ──
-	var title_frame = Node2D.new()
-	title_frame.set_script(_get_title_frame_script())
-	title_frame.position = Vector2(240, 234)
-	ui.add_child(title_frame)
-
-	# ── Tagline ──
 	var tag_lbl = Label.new()
-	tag_lbl.text = "tap · attract · escape"
-	tag_lbl.set_anchors_preset(Control.PRESET_TOP_WIDE)
+	tag_lbl.text = "TAP · ATTRACT · ESCAPE"
+	tag_lbl.position = Vector2(0, 334)
+	tag_lbl.size = Vector2(480, 22)
 	tag_lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	tag_lbl.position = Vector2(0, 338)
-	tag_lbl.add_theme_font_size_override("font_size", 17)
-	tag_lbl.add_theme_color_override("font_color", Color(0.5, 0.75, 1.0, 0.8))
+	tag_lbl.add_theme_font_override("font", UIFont.title(3))
+	tag_lbl.add_theme_font_size_override("font_size", 13)
+	tag_lbl.add_theme_color_override("font_color", Color(0.55, 0.8, 1.0, 0.9))
 	ui.add_child(tag_lbl)
 
-	# ── Ayraç ──
-	var divider = ColorRect.new()
-	divider.size = Vector2(300, 1)
-	divider.position = Vector2(90, 368)
-	divider.color = Color(0.0, 0.6, 1.0, 0.25)
-	ui.add_child(divider)
+	# ── Günlük seri rozeti (oyuncuyu her gün geri çağırır) ──
+	var streak = Progress.streak_info()
+	if streak["count"] >= 1:
+		var st_lbl = Label.new()
+		st_lbl.text = "🔥 %d-DAY STREAK" % streak["count"] + ("" if streak["today"] else "  ·  PLAY TODAY!")
+		st_lbl.position = Vector2(0, 362)
+		st_lbl.size = Vector2(480, 22)
+		st_lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		st_lbl.add_theme_font_override("font", UIFont.title(2))
+		st_lbl.add_theme_font_size_override("font_size", 12)
+		st_lbl.add_theme_color_override("font_color", Color(1.0, 0.65, 0.25) if streak["today"] else Color(1.0, 0.85, 0.35))
+		ui.add_child(st_lbl)
 
-	# ── SELECT HERO ──
 	var hero_title = Label.new()
 	hero_title.text = "SELECT HERO"
-	hero_title.set_anchors_preset(Control.PRESET_TOP_WIDE)
+	hero_title.position = Vector2(0, 390)
+	hero_title.size = Vector2(480, 20)
 	hero_title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	hero_title.position = Vector2(0, 376)
-	hero_title.add_theme_font_size_override("font_size", 13)
-	hero_title.add_theme_color_override("font_color", Color(0.5, 0.5, 0.75, 0.7))
+	hero_title.add_theme_font_override("font", UIFont.title(3))
+	hero_title.add_theme_font_size_override("font_size", 12)
+	hero_title.add_theme_color_override("font_color", Color(0.68, 0.72, 0.98, 0.95))
 	ui.add_child(hero_title)
 
 	# ── Hero kartlar ──
@@ -190,7 +177,7 @@ func _build():
 		not HeroManager.is_ad_hero_unlocked(HeroManager.BLAZE_ID), not HeroManager.is_ad_hero_unlocked(HeroManager.POLARIS_ID)]
 	var hero_count = hero_names.size()
 	# İki sıra: üstte 4 kahraman, altta reklamla açılan 2 kahraman ortalı
-	var hero_y = 398.0
+	var hero_y = 414.0
 	var card_w = 104.0
 	var card_h = 116.0
 	var gap = 8.0
@@ -273,7 +260,8 @@ func _build():
 		hlbl.size = Vector2(card_w, 24)
 		hlbl.position = Vector2(cx, cy + card_h - 24)
 		hlbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-		hlbl.add_theme_font_size_override("font_size", 13)
+		hlbl.add_theme_font_override("font", UIFont.title(1))
+		hlbl.add_theme_font_size_override("font_size", 11)
 		hlbl.add_theme_color_override("font_color",
 			Color(0.35, 0.3, 0.4, 0.6) if is_locked else (hero_colors[i] if is_sel else Color(0.45, 0.45, 0.6)))
 		ui.add_child(hlbl)
@@ -319,9 +307,10 @@ func _build():
 		)
 		ui.add_child(hbtn)
 
-	# ── PLAY butonu ──
-	var play_y = hero_y + card_h * 2 + row_gap + 14
-
+	# ── PLAY / CONTINUE ──
+	# Geri dönen oyuncu kaldığı en yüksek level'den devam eder; Level 1 için küçük NEW GAME
+	var play_y = hero_y + card_h * 2 + row_gap + 16
+	var can_continue = max_lvl > 1
 	var btn_panel = ColorRect.new()
 	btn_panel.size = Vector2(300, 72)
 	btn_panel.position = Vector2(90, play_y)
@@ -343,65 +332,46 @@ func _build():
 	bot_line2.color = Color(0.0, 0.85, 1.0, 1.0)
 	ui.add_child(bot_line2)
 	play_btn = Button.new()
-	play_btn.text = "▶  PLAY"
+	play_btn.text = "▶ CONTINUE" if can_continue else "▶  PLAY"
 	play_btn.size = Vector2(300, 72)
 	play_btn.position = Vector2(90, play_y)
 	play_btn.flat = true
-	play_btn.add_theme_font_size_override("font_size", 34)
+	play_btn.focus_mode = Control.FOCUS_NONE
+	play_btn.add_theme_font_override("font", UIFont.title(2))
+	play_btn.add_theme_font_size_override("font_size", 26 if can_continue else 30)
 	play_btn.add_theme_color_override("font_color", Color(0.0, 0.9, 1.0, 1.0))
 	play_btn.add_theme_color_override("font_hover_color", Color(1.0, 1.0, 1.0, 1.0))
-	play_btn.pressed.connect(_on_play)
-	ui.add_child(play_btn)
-
-	# ── SOUND butonu ──
-	var sound_y = play_y + 86
-	var sound_panel = ColorRect.new()
-	sound_panel.size = Vector2(220, 54)
-	sound_panel.position = Vector2(130, sound_y)
-	sound_panel.color = Color(0.03, 0.03, 0.18, 0.92)
-	ui.add_child(sound_panel)
-	var sound_top = ColorRect.new()
-	sound_top.name = "SoundTopLine"
-	sound_top.size = Vector2(220, 2)
-	sound_top.position = Vector2(130, sound_y)
-	sound_top.color = Color(0.0, 0.6, 1.0, 0.4)
-	ui.add_child(sound_top)
-	var sound_bot2 = ColorRect.new()
-	sound_bot2.size = Vector2(220, 2)
-	sound_bot2.position = Vector2(130, sound_y + 54)
-	sound_bot2.color = Color(0.0, 0.6, 1.0, 0.4)
-	ui.add_child(sound_bot2)
-	var sound_vis = Node2D.new()
-	sound_vis.set_script(load("res://scripts/SoundButtonVisual.gd"))
-	sound_vis.name = "SoundVis"
-	sound_vis.position = Vector2(162, sound_y + 27)
-	if sound_vis.has_method("setup"):
-		sound_vis.setup(SoundManager.is_on())
-	ui.add_child(sound_vis)
-	var sound_lbl = Label.new()
-	sound_lbl.name = "SoundLbl"
-	sound_lbl.size = Vector2(160, 54)
-	sound_lbl.position = Vector2(186, sound_y)
-	sound_lbl.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-	sound_lbl.add_theme_font_size_override("font_size", 18)
-	if SoundManager.is_on():
-		sound_lbl.text = "SOUND ON"
-		sound_lbl.add_theme_color_override("font_color", Color(0.0, 0.85, 1.0, 1.0))
+	if can_continue:
+		var lvl_n = max_lvl
+		play_btn.pressed.connect(func(): LevelTransition.flash_and_load("res://scenes/Level%d.tscn" % lvl_n))
 	else:
-		sound_lbl.text = "SOUND OFF"
-		sound_lbl.add_theme_color_override("font_color", Color(0.6, 0.3, 0.3, 0.8))
-	ui.add_child(sound_lbl)
-	sound_btn = Button.new()
-	sound_btn.name = "SoundBtn"
-	sound_btn.size = Vector2(220, 54)
-	sound_btn.position = Vector2(130, sound_y)
-	sound_btn.flat = true
-	sound_btn.text = ""
-	sound_btn.pressed.connect(_on_sound_toggle)
-	ui.add_child(sound_btn)
+		play_btn.pressed.connect(_on_play)
+	ui.add_child(play_btn)
+	if can_continue:
+		var lvl_tag = Label.new()
+		lvl_tag.text = "LEVEL %d" % max_lvl
+		lvl_tag.position = Vector2(90, play_y + 50)
+		lvl_tag.size = Vector2(292, 18)
+		lvl_tag.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
+		lvl_tag.add_theme_font_override("font", UIFont.title(2))
+		lvl_tag.add_theme_font_size_override("font_size", 11)
+		lvl_tag.add_theme_color_override("font_color", Color(0.5, 0.85, 1.0, 0.8))
+		lvl_tag.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		ui.add_child(lvl_tag)
+		var new_btn = Button.new()
+		new_btn.text = "↺  NEW GAME"
+		new_btn.size = Vector2(200, 40)
+		new_btn.position = Vector2(140, play_y + 82)
+		new_btn.flat = true
+		new_btn.focus_mode = Control.FOCUS_NONE
+		new_btn.add_theme_font_override("font", UIFont.title(2))
+		new_btn.add_theme_font_size_override("font_size", 13)
+		new_btn.add_theme_color_override("font_color", Color(0.62, 0.68, 0.9, 0.9))
+		new_btn.add_theme_color_override("font_hover_color", Color(1, 1, 1))
+		new_btn.pressed.connect(_on_play)
+		ui.add_child(new_btn)
 
 	# ── Uzun ekran: içerik ortalanır, üst butonlar en üstte (çentik payıyla) kalır ──
-	var top_bar = [lb_panel, lb_lbl, lb_btn, lv_panel, lv_lbl, lv_btn]
 	ScreenUtil.shift_children(ui, ScreenUtil.center_offset(self), top_bar)
 	var safe_top = ScreenUtil.safe_top(self)
 	for n in top_bar:
@@ -772,7 +742,7 @@ func _process(delta):
 	if is_instance_valid(title_lbl):
 		var s = 1.0 + sin(time * 1.8) * 0.018
 		title_lbl.scale = Vector2(s, s)
-		title_lbl.pivot_offset = Vector2(240, 32)
+		title_lbl.pivot_offset = Vector2(240, 36)
 
 # Reklamla açılan kahramanın (BLAZE, POLARIS) kilit açma penceresi: 3 ödüllü reklam, her biri
 # ayrı ayrı oyuncunun isteğiyle izlenir. İlerleme her ödülde kaydedilir; pencere kapatılsa da kaybolmaz.
@@ -901,6 +871,7 @@ func _show_ad_unlock(ui: CanvasLayer, hid: int, accent: Color):
 					AnalyticsManager.design_event("HeroUnlock:%s:Unlocked" % ga_name)
 					HeroManager.selected_hero = hid
 					HeroManager.save_hero(hid)
+					Progress.on_hero_unlocked()
 			if not is_instance_valid(overlay):
 				return
 			watch_btn.disabled = false
@@ -921,6 +892,109 @@ func _show_ad_unlock(ui: CanvasLayer, hid: int, accent: Color):
 
 	refresh.call()
 	ScreenUtil.shift_children(overlay, ScreenUtil.center_offset(self))
+
+# Ödüller (Progress.AWARDS): açılanlar parlak + tarih, kilitliler soluk. Tamamen yerel.
+func _show_awards(ui: CanvasLayer):
+	var vh = ScreenUtil.viewport_height(self)
+	var top = ScreenUtil.safe_top(self)
+	var overlay = ColorRect.new()
+	overlay.set_anchors_preset(Control.PRESET_FULL_RECT)
+	overlay.color = Color(0.0, 0.0, 0.02, 0.95)
+	ui.add_child(overlay)
+	var title = Label.new()
+	title.text = "🏆 AWARDS"
+	title.position = Vector2(0, 18 + top)
+	title.size = Vector2(480, 40)
+	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	title.add_theme_font_override("font", UIFont.title(3))
+	title.add_theme_font_size_override("font_size", 26)
+	title.add_theme_color_override("font_color", Color(1.0, 0.75, 0.9))
+	title.add_theme_color_override("font_shadow_color", Color(0.6, 0.1, 0.4, 0.8))
+	title.add_theme_constant_override("shadow_outline_size", 8)
+	overlay.add_child(title)
+	var sub = Label.new()
+	var best = int(Progress.data["best_streak"])
+	sub.text = "%d / %d UNLOCKED   ·   BEST STREAK %d DAY%s" % [Progress.unlocked_count(), Progress.AWARDS.size(), best, "" if best == 1 else "S"]
+	sub.position = Vector2(0, 60 + top)
+	sub.size = Vector2(480, 20)
+	sub.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	sub.add_theme_font_override("font", UIFont.title(1))
+	sub.add_theme_font_size_override("font_size", 11)
+	sub.add_theme_color_override("font_color", Color(0.75, 0.75, 0.95, 0.9))
+	overlay.add_child(sub)
+	var scroll = ScrollContainer.new()
+	scroll.position = Vector2(0, 92 + top)
+	scroll.size = Vector2(480, vh - 92 - top - 66)
+	scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
+	overlay.add_child(scroll)
+	var list = VBoxContainer.new()
+	list.custom_minimum_size = Vector2(480, 0)
+	list.add_theme_constant_override("separation", 8)
+	scroll.add_child(list)
+	for a in Progress.AWARDS:
+		var got = Progress.is_unlocked(a["id"])
+		var row = PanelContainer.new()
+		var sb = StyleBoxFlat.new()
+		sb.bg_color = Color(0.1, 0.08, 0.2, 0.95) if got else Color(0.06, 0.06, 0.1, 0.9)
+		sb.border_color = Color(1.0, 0.7, 0.3, 0.7) if got else Color(0.25, 0.25, 0.35, 0.6)
+		sb.border_width_left = 3
+		sb.set_corner_radius_all(10)
+		sb.content_margin_left = 14
+		sb.content_margin_right = 14
+		sb.content_margin_top = 8
+		sb.content_margin_bottom = 8
+		row.add_theme_stylebox_override("panel", sb)
+		row.custom_minimum_size = Vector2(440, 0)
+		var margin = MarginContainer.new()
+		margin.add_theme_constant_override("margin_left", 20)
+		margin.add_theme_constant_override("margin_right", 20)
+		margin.add_child(row)
+		list.add_child(margin)
+		var h = HBoxContainer.new()
+		h.add_theme_constant_override("separation", 12)
+		row.add_child(h)
+		var icon = Label.new()
+		icon.text = a["icon"] if got else "🔒"
+		icon.add_theme_font_size_override("font_size", 26)
+		if not got:
+			icon.modulate = Color(1, 1, 1, 0.45)
+		h.add_child(icon)
+		var col = VBoxContainer.new()
+		col.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		col.add_theme_constant_override("separation", 0)
+		h.add_child(col)
+		var t = Label.new()
+		t.text = a["title"]
+		t.add_theme_font_override("font", UIFont.title(1))
+		t.add_theme_font_size_override("font_size", 14)
+		t.add_theme_color_override("font_color", Color(1, 1, 1) if got else Color(0.6, 0.6, 0.72))
+		col.add_child(t)
+		var d = Label.new()
+		d.text = a["desc"]
+		d.add_theme_font_size_override("font_size", 13)
+		d.add_theme_color_override("font_color", Color(0.75, 0.78, 0.95, 0.9) if got else Color(0.45, 0.45, 0.55))
+		col.add_child(d)
+		if got:
+			var date = Label.new()
+			date.text = str(Progress.data["awards"][a["id"]]).substr(5, 5)
+			date.add_theme_font_size_override("font_size", 11)
+			date.add_theme_color_override("font_color", Color(1.0, 0.75, 0.4, 0.8))
+			h.add_child(date)
+	var close_bg = ColorRect.new()
+	close_bg.size = Vector2(200, 50)
+	close_bg.position = Vector2(140, vh - 58)
+	close_bg.color = Color(0.2, 0.05, 0.18, 1.0)
+	overlay.add_child(close_bg)
+	var close_btn = Button.new()
+	close_btn.text = "✕  CLOSE"
+	close_btn.size = Vector2(200, 50)
+	close_btn.position = Vector2(140, vh - 58)
+	close_btn.flat = true
+	close_btn.add_theme_font_override("font", UIFont.title(2))
+	close_btn.add_theme_font_size_override("font_size", 16)
+	close_btn.add_theme_color_override("font_color", Color(1.0, 0.7, 0.9))
+	close_btn.pressed.connect(func(): overlay.queue_free())
+	overlay.add_child(close_btn)
 
 func _show_leaderboard(ui: CanvasLayer):
 	var overlay = ColorRect.new()
@@ -1164,7 +1238,33 @@ func _show_level_select(ui: CanvasLayer):
 	close_btn.pressed.connect(func(): overlay.queue_free())
 	overlay.add_child(close_btn)
 
-func _get_hud_button_script(icon_type: String, accent: Color) -> GDScript:
+# Üst çubuk butonu: buton + ikon + etiket. Dönen: kaydırma için düğümler
+func _top_button(ui: CanvasLayer, pos: Vector2, w: float, icon: String, accent: Color, text: String, cb: Callable) -> Array:
+	var panel = Node2D.new()
+	panel.set_script(_get_hud_button_script(icon, accent, w))
+	panel.position = pos
+	ui.add_child(panel)
+	var lbl = Label.new()
+	lbl.text = text
+	lbl.size = Vector2(w, 18)
+	lbl.position = pos + Vector2(0, 34)
+	lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	lbl.add_theme_font_override("font", UIFont.title(1))
+	lbl.add_theme_font_size_override("font_size", 11)
+	lbl.add_theme_color_override("font_color", accent.lightened(0.15))
+	lbl.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	ui.add_child(lbl)
+	var btn = Button.new()
+	btn.size = Vector2(w, 56)
+	btn.position = pos
+	btn.flat = true
+	btn.text = ""
+	btn.focus_mode = Control.FOCUS_NONE
+	btn.pressed.connect(cb)
+	ui.add_child(btn)
+	return [panel, lbl, btn]
+
+func _get_hud_button_script(icon_type: String, accent: Color, width: float = 90.0) -> GDScript:
 	var s = GDScript.new()
 	var r = accent.r
 	var g = accent.g
@@ -1180,8 +1280,8 @@ func _draw():
 	var accent = Color(%f, %f, %f, 1.0)
 	var icon_type = "%s"
 	var pulse = 0.6 + sin(time * 2.2) * 0.25
-	var w = 90.0
-	var h = 52.0
+	var w = %f
+	var h = 56.0
 	draw_rect(Rect2(0, 0, w, h), Color(0.04, 0.05, 0.1, 0.92))
 	draw_rect(Rect2(0, 0, w, h), Color(accent.r, accent.g, accent.b, 0.06))
 	for cx in [3.0, w - 3.0]:
@@ -1210,7 +1310,14 @@ func _draw():
 		draw_arc(icon_c, 7, time * 2.0 + PI, time * 2.0 + PI + TAU * 0.7, 16, Color(1, 1, 1, 0.5), 1.2)
 		draw_circle(icon_c, 3.5, Color(accent.r, accent.g, accent.b, 0.7 + pulse * 0.3))
 		draw_circle(icon_c, 1.6, Color(1, 1, 1, 0.8))
-""" % [r, g, b, icon]
+	elif icon_type == "podium":
+		# skor tablosu: 1-2-3 kürsüsü
+		draw_circle(icon_c, 9, Color(accent.r, accent.g, accent.b, 0.12 + pulse * 0.1))
+		draw_rect(Rect2(icon_c.x - 3.5, icon_c.y - 6, 7, 13), accent)
+		draw_rect(Rect2(icon_c.x - 11, icon_c.y - 1, 7, 8), Color(accent.r, accent.g, accent.b, 0.75))
+		draw_rect(Rect2(icon_c.x + 4, icon_c.y + 2, 7, 5), Color(accent.r, accent.g, accent.b, 0.55))
+		draw_circle(icon_c + Vector2(0, -10), 2.2, Color(1, 1, 1, 0.85))
+""" % [r, g, b, icon, width]
 	s.reload()
 	return s
 
@@ -1383,51 +1490,6 @@ func _draw():
 		var pos = Vector2(cos(ang) * r, sin(ang) * r * 0.4)
 		var tw = 0.4 + sin(time * 2.0 + p["phase"]) * 0.3
 		draw_circle(pos, p["size"], Color(0.4, 0.85, 1.0, tw * 0.5))
-"""
-	s.reload()
-	return s
-
-func _get_title_frame_script() -> GDScript:
-	var s = GDScript.new()
-	s.source_code = """
-extends Node2D
-var time: float = 0.0
-func _process(delta):
-	time += delta
-	queue_redraw()
-func _draw():
-	var pulse = 0.55 + sin(time * 2.0) * 0.35
-	var cyan = Color(0.0, 0.85, 1.0)
-	var purple = Color(0.75, 0.3, 1.0)
-
-	# Sol/sağ teknik çizgi kolları (MAGNET hizası)
-	draw_line(Vector2(-185, -34), Vector2(-130, -34), Color(cyan.r, cyan.g, cyan.b, 0.5 + pulse * 0.3), 2.0)
-	draw_line(Vector2(-185, -34), Vector2(-185, -22), Color(cyan.r, cyan.g, cyan.b, 0.5 + pulse * 0.3), 2.0)
-	draw_line(Vector2(185, -34), Vector2(130, -34), Color(cyan.r, cyan.g, cyan.b, 0.5 + pulse * 0.3), 2.0)
-	draw_line(Vector2(185, -34), Vector2(185, -22), Color(cyan.r, cyan.g, cyan.b, 0.5 + pulse * 0.3), 2.0)
-	for i in 3:
-		var tx = -185 + 8.0
-		draw_circle(Vector2(-185, -34), 2.0, Color(cyan.r, cyan.g, cyan.b, 0.8))
-		draw_circle(Vector2(185, -34), 2.0, Color(cyan.r, cyan.g, cyan.b, 0.8))
-
-	# Sol/sağ teknik çizgi kolları (SHIFT hizası)
-	draw_line(Vector2(-150, 34), Vector2(-100, 34), Color(purple.r, purple.g, purple.b, 0.45 + pulse * 0.3), 2.0)
-	draw_line(Vector2(-150, 34), Vector2(-150, 22), Color(purple.r, purple.g, purple.b, 0.45 + pulse * 0.3), 2.0)
-	draw_line(Vector2(150, 34), Vector2(100, 34), Color(purple.r, purple.g, purple.b, 0.45 + pulse * 0.3), 2.0)
-	draw_line(Vector2(150, 34), Vector2(150, 22), Color(purple.r, purple.g, purple.b, 0.45 + pulse * 0.3), 2.0)
-	draw_circle(Vector2(-150, 34), 1.8, Color(purple.r, purple.g, purple.b, 0.8))
-	draw_circle(Vector2(150, 34), 1.8, Color(purple.r, purple.g, purple.b, 0.8))
-
-	# Ortadaki ince taranmış ayraç (MAGNET ve SHIFT arasında)
-	var scan_y = -2.0
-	for i in 24:
-		var x = -120 + i * 10.0
-		var h = 3.0 if i % 3 == 0 else 1.5
-		draw_line(Vector2(x, scan_y - h), Vector2(x, scan_y + h), Color(0.4, 0.85, 1.0, 0.25 + pulse * 0.2), 1.2)
-
-	# Hareketli tarayıcı çizgi (sola sağa kayan glow)
-	var scan_x = sin(time * 0.8) * 110.0
-	draw_line(Vector2(scan_x, -38), Vector2(scan_x, 40), Color(1.0, 1.0, 1.0, 0.12 + pulse * 0.08), 6.0)
 """
 	s.reload()
 	return s
