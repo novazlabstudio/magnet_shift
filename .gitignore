@@ -7,3 +7,6 @@ android/build/
 
 # Editor temp files
 *.tmp
+
+# Derleme çıktısı (tools/build_aab.sh)
+build/
