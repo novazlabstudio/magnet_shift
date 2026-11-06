@@ -39,3 +39,11 @@ func flash_death():
 	var tween = create_tween()
 	tween.tween_property(overlay, "color", Color(0.8, 0.0, 0.0, 0.5), 0.08)
 	tween.tween_property(overlay, "color", Color(0, 0, 0, 0), 0.3)
+
+func flash_color(col: Color):
+	# Kısa renkli parlama (ölüm/çıkış anları); sahne geçişi sürüyorsa karışmasın
+	if is_transitioning:
+		return
+	var tween = create_tween()
+	tween.tween_property(overlay, "color", col, 0.05)
+	tween.tween_property(overlay, "color", Color(col.r, col.g, col.b, 0), 0.35)

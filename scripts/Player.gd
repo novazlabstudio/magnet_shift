@@ -25,52 +25,43 @@ func set_active_magnet(magnet: Node2D):
 func clear_active_magnet():
 	active_magnet = null
 
+# Ölüm animasyonunun süresi (PlayerVisual + DeathFX + kamera odağı bununla eşzamanlı).
+# Bitince player_died yayınlanır ve sonuç ekranı açılır.
+const DEATH_TIME := {"laser": 1.2, "guard": 1.05}
+# Kahramana göre "Ahh!" perdesi: 0 Cyborg, 1 Pink, 2 Shadow, 3 Mech, 4 Blaze, 5 Polaris
+const VOICE_PITCH := [1.0, 1.28, 0.86, 0.8, 0.95, 1.12]
+
 func die(cause: String = ""):
-	if is_dead:
+	# Kapıya çekilirken lazer/bekçi değse de ölmez (iki animasyon çakışmasın)
+	if is_dead or is_level_complete:
 		return
 	is_dead = true
-	death_cause = cause
+	death_cause = cause if cause in ["laser", "guard"] else "guard"
 	set_deferred("freeze", true)
+	set_deferred("linear_velocity", Vector2.ZERO)
 
 	var vis = get_node_or_null("Visual")
-	if vis and vis.has_method("set_dead"):
-		vis.set_dead(true)
+	var accent = Color(0.0, 0.85, 1.0)
+	if vis and vis.has_method("play_death"):
+		vis.play_death(death_cause)
+		accent = vis.accent_color()
+	var fx = Node2D.new()
+	fx.name = "DeathFX"
+	fx.set_script(load("res://scripts/DeathFX.gd"))
+	add_child(fx)
+	fx.setup(death_cause, accent)
 
-	# Parçacık efekti - kıvılcımlar
-	_spawn_death_particles()
+	var gm = get_tree().current_scene
+	if gm and gm.has_method("on_player_death_started"):
+		gm.on_player_death_started(self, death_cause)
 
-	await get_tree().create_timer(0.6).timeout
+	# Darbe sesi ile çığlık aynı anda; çığlık kahramana göre perdelenir
+	SoundManager.play_sfx("zap" if death_cause == "laser" else "hit", -2.0)
+	var hero = HeroManager.get_hero()
+	SoundManager.play_sfx("hero_ahh", 0.0, VOICE_PITCH[clamp(hero, 0, VOICE_PITCH.size() - 1)])
+
+	await get_tree().create_timer(DEATH_TIME[death_cause]).timeout
 	emit_signal("player_died")
-
-func _spawn_death_particles():
-	for i in 10:
-		var p = Node2D.new()
-		p.position = global_position
-		get_tree().current_scene.add_child(p)
-
-		var angle = TAU * i / 10.0 + randf() * 0.5
-		var speed = randf_range(80, 200)
-		var vel = Vector2(cos(angle) * speed, sin(angle) * speed)
-		var size = randf_range(3, 8)
-		var color = [
-			Color(1.0, 0.3, 0.1),
-			Color(1.0, 0.8, 0.0),
-			Color(0.0, 0.8, 1.0),
-			Color(1.0, 0.2, 0.2)
-		][i % 4]
-
-		var tween = p.create_tween()
-		tween.tween_property(p, "position",
-			p.position + vel * 0.5, 0.5)
-		tween.parallel().tween_property(p, "modulate:a", 0.0, 0.5)
-		tween.tween_callback(p.queue_free)
-
-		# Her parçacık için küçük renkli kare çiz
-		var cr = ColorRect.new()
-		cr.size = Vector2(size, size)
-		cr.position = Vector2(-size/2, -size/2)
-		cr.color = color
-		p.add_child(cr)
 
 func complete_level():
 	if is_level_complete:

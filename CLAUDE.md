@@ -40,12 +40,13 @@ GDScript'te (Godot 4) aynı fonksiyon içindeki iki ayrı lambda, dışarıdaki 
 - GA Design olayları: `Level:Quit:LevelNN` (pause'dan menüye çıkış), `Tutorial:Complete`.
 
 ## Masaüstünde Test
+- Mac: `"/Applications/Godot 4.6.app/Contents/MacOS/Godot"`. Projeyi doğrudan değil, kopyasında (AnalyticsManager/AdManager stub'lı, `config/custom_user_dir_name` ayrı) çalıştır; gerçek GA olayı ve reklam gitmesin.
 - Godot 4.6.3 (Windows): `C:\dgn\Godot_v4.6.3-stable_win64.exe\Godot_v4.6.3-stable_win64_console.exe`. Görsel test için geçici bir runner sahnesi `--resolution 480x1040` / `480x854` ile çalıştırılıp `get_viewport().get_texture().get_image()` ile ekran görüntüsü alınabilir.
 - Masaüstünde çalıştırınca `AnalyticsManager` gerçek GA'ya istek atar: runner'da `is_enabled=false`, `http_init/http_events.cancel_request()` ve `_on_init_completed` bağlantısını koparmak gerekir.
 
 ## Sürüm
-- Proje Godot 4.6 ile kaydedilmiş (`config/features` 4.6, sahnelerde `unique_id`). Bu Mac'te şu an sadece 4.4.1 + 4.4.1 export şablonları var.
-- Play Console'a her yüklemede `export_presets.cfg` → `version/code` artırılmalı (1.0.0=1, 1.0.1=2, 1.0.2=3; sıradaki 4).
+- Proje Godot 4.6 ile kaydedilmiş (`config/features` 4.6, sahnelerde `unique_id`). Mac'te `/Applications/Godot 4.6.app` (4.6.3 + şablonlar) var; `/Applications/Godot.app` 4.4.1 diğer oyunlar için, Magnet Shift'i onunla açma.
+- Play Console'a her yüklemede `export_presets.cfg` → `version/code` artırılmalı (1.0.0=1, 1.0.1=2, 1.0.2=3, 1.1.0=4; sıradaki 5).
 - Release keystore ve export parolaları sadece Windows PC'de; ayrıntı ve derleme komutları PROGRESS.md bölüm 5.
 
 ## Analitik
@@ -53,8 +54,27 @@ GDScript'te (Godot 4) aynı fonksiyon içindeki iki ayrı lambda, dışarıdaki 
 - Testlerde GameAnalytics'e gerçek olay gitmemesi için autoload'u stub ile değiştir.
 
 ## Kahramanlar
-- 0=Cyborg, 1=Pink, 2=Shadow (Lvl 5), 3=Mech (Lvl 10), 4=Blaze. Çizimler `PlayerVisual.gd`; menüdeki 0–3 önizlemeleri `MainMenu.gd::_get_hero_preview_script` içinde ayrı kopya, Blaze ise doğrudan `PlayerVisual` (`preview_hero`) kullanıyor.
-- **Blaze 3 ödüllü reklamla açılır** (`HeroManager.BLAZE_ADS_REQUIRED`, ilerleme `user://blaze_ads.dat`). Her reklam oyuncunun ayrı dokunuşuyla başlar, ödül her izlemede kaydedilir (AdMob kurallarına uygun: isteğe bağlı, ödül önceden açıkça yazılı). Pencere: `MainMenu.gd::_show_blaze_unlock`.
+- 0=Cyborg, 1=Pink, 2=Shadow (Lvl 5), 3=Mech (Lvl 10), 4=Blaze, 5=Polaris. Çizimler `PlayerVisual.gd`; menüdeki 0–3 önizlemeleri `MainMenu.gd::_get_hero_preview_script` içinde ayrı kopya, reklamla açılanlar (4, 5) doğrudan `PlayerVisual` (`preview_hero`) kullanıyor. Adlar tek yerde: `HeroManager.HERO_NAMES`.
+- Menü: üstte 4, altta 2 kart (reklamla açılanlar), `per_row = [4, 2]`.
+- **Blaze ve Polaris 3'er ödüllü reklamla açılır** (`HeroManager.AD_HEROES`; ilerleme `user://blaze_ads.dat`, `user://polaris_ads.dat`). Her reklam oyuncunun ayrı dokunuşuyla başlar, ödül her izlemede kaydedilir (AdMob kurallarına uygun: isteğe bağlı, ödül önceden açıkça yazılı). Pencere: `MainMenu.gd::_show_ad_unlock(ui, hero_id, renk)`.
+- Polaris (`_draw_polaris`) bacaksız süzülür; kahraman çizimlerinde `draw_set_transform` KULLANMA: ölüm animasyonu tüm çizime `draw_set_transform_matrix` uyguluyor, iç çağrı onu bozar (elips için nokta listesi kullan).
 - Şimdilik ExtraLife ile aynı rewarded ad unit kullanılıyor; AdMob'da ayrı bir "HeroUnlock" unit'i açılırsa raporlar ayrışır.
-- GA Design olayları: `HeroUnlock:Blaze:Ad1..Ad3`, `HeroUnlock:Blaze:Unlocked` — kaç kişinin hangi adımda bıraktığı görülebilir.
-- Yeni kahraman eklerken: `HeroManager` clamp sınırı, `GameManager` içindeki `hero_names` (3 yer), `PlayerVisual._draw_dead` renk dizisi ve menü kart sayısı birlikte güncellenmeli.
+- GA Design olayları: `HeroUnlock:<Blaze|Polaris>:Ad1..Ad3`, `HeroUnlock:<ad>:Unlocked` — kaç kişinin hangi adımda bıraktığı görülebilir.
+- Yeni kahraman eklerken: `HeroManager.HERO_COUNT/HERO_NAMES` (+ reklamlıysa `AD_HEROES`), `PlayerVisual._draw_hero` + `HERO_ACCENTS`, `Player.VOICE_PITCH`, menüdeki `hero_names/hero_colors/hero_locked/per_row` birlikte güncellenmeli.
+
+## Ölüm, Çıkış ve Level Girişi Animasyonları
+- Ölüm (`Player.die(cause)` → "laser" | "guard"): `PlayerVisual.play_death` kahramanı kendi çiziminde tutar (titreme/kömürleşme/devrilme veya fırlayıp dönme), `DeathFX.gd` çevredeki efektleri çizer (şimşek arkları, kıvılcım, alev, duman, kül / darbe halkası, yıldız, dişli). `GameManager.on_player_death_started` kamerayı kahramana kilitler (zoom 1.9, sarsıntı, vinyet, renkli flaş). Süre `Player.DEATH_TIME`; bitince `player_died` → sonuç ekranı.
+- Çıkış (`ExitDoor._play_enter_animation`): kahraman 0.55 sn spiral çizip parlayarak girdaba çekilir, `ExitVisual.play_enter` ışık sütunu/içe akan çizgiler/patlama/şok halkası çizer, `GameManager.on_exit_started` kamerayı kapıya kilitler; `level_complete` 0.5 sn sonra.
+- Odak sırasında kamera oyuncudan ayrılıp level köküne taşınır (`_focus_camera`), alt sınırı gevşetilir; zemin ve duvarlar bu yüzden aşağıda 600 px uzatıldı.
+- Level girişi (`_play_level_intro`): "LEVEL N" + tema adı başlığı ve `SpawnFX.gd` ışınlanma.
+- Ses efektleri `audio/sfx/*.wav` — `tools/gen_sfx.py` ile sıfırdan sentezlenir (lisanslı ses yok; macOS `say` sesleri ticari kullanımda yasak olduğu için kullanılmadı). Çalma: `SoundManager.play_sfx(ad, db, pitch)`; ses kapalıysa çalmaz. "Ahh!" perdesi kahramana göre `Player.VOICE_PITCH`.
+
+## Arka Planlar (`LevelBackdrop.gd`)
+- Tema level'in `bg` renginin tonundan seçilir: sky (açık), ocean, nebula, aurora, crystal, inferno, desert, void (gri/siyah). Yerleşim `level*7919` tohumuyla değişir; renkler level paletinden.
+- Katmanlar: ekrana sabit degrade (CanvasLayer -20), far/mid/near parallax (0.12/0.32/0.6), `anim` (yıldız parıltısı, kuzey ışığı, lav nabzı — her kare çizilir), ekrana sabit parçacıklar (CanvasLayer -5).
+- far/mid/near level açılırken SubViewport'ta bir kez resme pişirilir (1.0/0.75/0.5 çözünürlük), `BLEND_MODE_PREMULT_ALPHA` ile çizilir. Pişirmeden önce L50'de 1779 çizim çağrısıydı; sonra 313 (eski bina arka planlı sürüm 417).
+
+## Skor Tablosu (BOARD, `Leaderboard.gd`)
+- Her koşu (Level 1'den ya da sıfırlanan skorla başlayan oyun) tek satır; `user://current_run.txt` koşu kimliği. Satır her level bitişinde ve game over'da `Leaderboard.record` ile güncellenir; skor sıfırlayan her yer `GameManager._reset_run()` kullanır (yeni koşu açar).
+- Eski hata: kayıt yalnızca game over'da ve Level 50 bitince yazılıyordu; MAIN MENU / RESTART / PLAY / uygulamayı kapatma skoru kaydetmeden siliyordu → tablo neredeyse hiç dolmuyordu.
+- Dosya `user://leaderboard.json`; eski ikili `leaderboard.dat` ilk okumada taşınır (silinmez). En iyi 5, 0 puan yazılmaz.

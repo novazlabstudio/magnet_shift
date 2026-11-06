@@ -1,6 +1,7 @@
 extends Node2D
 
 const ScreenUtil = preload("res://scripts/ScreenUtil.gd")
+const Leaderboard = preload("res://scripts/Leaderboard.gd")
 
 @export var next_level_path: String = ""
 @export var level_number: int = 1
@@ -14,7 +15,7 @@ var total_coins: int = 0
 var coins_collected: int = 0
 var level_active: bool = true
 var total_score: int = 0
-var _bg_time: float = 0.0
+var backdrop: Node2D = null
 var lives: int = 3
 var lives_label: Label = null
 var coins_since_last_life: int = 0
@@ -34,6 +35,14 @@ var pause_panel: ColorRect = null
 var indicators: Node2D = null
 var tutorial: Node2D = null
 var exit_position: Vector2 = Vector2.ZERO
+var camera: Camera2D = null
+# Ölüm ve çıkış anlarında kamera olaya kilitlenir (normal takip durur)
+var _cam_focus: bool = false
+var _shake_t: float = 0.0
+var _shake_len: float = 0.0
+var _shake_amp: float = 0.0
+var _exiting: bool = false
+var vignette: TextureRect = null
 const TUTORIAL_FILE := "user://tutorial_done.dat"
 
 func get_level_data() -> Dictionary:
@@ -93,19 +102,24 @@ func get_level_data() -> Dictionary:
 
 func _ready():
 	if level_number == 1:
-		_save_total_score(0)
-		_save_lives(3)
+		_reset_run()
 	total_score = _load_total_score()
 	lives = _load_lives()
 	_build_level()
 	_setup_ui()
 	LevelTransition.fade_in()
 	_play_music()
+	_play_level_intro()
 
 func _process(delta):
-	_bg_time += delta
-	queue_redraw()
-	if player and is_instance_valid(player):
+	if _cam_focus and camera:
+		if _shake_t > 0.0:
+			_shake_t = max(0.0, _shake_t - delta)
+			var k = _shake_t / _shake_len
+			camera.offset = Vector2(randf_range(-1, 1), randf_range(-1, 1)) * _shake_amp * k
+		else:
+			camera.offset = Vector2.ZERO
+	elif player and is_instance_valid(player):
 		var cam = player.get_node_or_null("Camera")
 		if cam:
 			var lh = _get_level_height()
@@ -216,47 +230,12 @@ func _calculate_stars() -> int:
 	else:
 		return 1
 
-func _save_leaderboard(entries: Array):
-	var f = FileAccess.open("user://leaderboard.dat", FileAccess.WRITE)
-	if f:
-		f.store_8(entries.size())
-		for e in entries:
-			f.store_32(e["score"])
-			f.store_8(e["level"])
-			var date = e["date"]
-			f.store_8(date.length())
-			for c in date:
-				f.store_8(c.unicode_at(0))
-		f.close()
-
-func _load_leaderboard() -> Array:
-	if not FileAccess.file_exists("user://leaderboard.dat"):
-		return []
-	var f = FileAccess.open("user://leaderboard.dat", FileAccess.READ)
-	if not f:
-		return []
-	var entries = []
-	var count = f.get_8()
-	for i in count:
-		var score = f.get_32()
-		var level = f.get_8()
-		var date_len = f.get_8()
-		var date = ""
-		for j in date_len:
-			date += char(f.get_8())
-		entries.append({"score": score, "level": level, "date": date})
-	f.close()
-	return entries
-
-func _add_score_to_leaderboard(score: int, reached_level: int):
-	var entries = _load_leaderboard()
-	var now = Time.get_date_string_from_system()
-	entries.append({"score": score, "level": reached_level, "date": now})
-	entries.sort_custom(func(a, b): return a["score"] > b["score"])
-	if entries.size() > 5:
-		entries = entries.slice(0, 5)
-	_save_leaderboard(entries)
-	return entries
+# Koşuyu sıfırlar: skor 0, can 3; skor tablosunda yeni bir satır açılır
+func _reset_run():
+	_save_total_score(0)
+	coins_since_last_life = 0
+	_save_lives(3)
+	Leaderboard.start_new_run()
 
 # ─── LEVEL BUILDER ───────────────────────────────────────────────────────────
 
@@ -269,7 +248,12 @@ func _build_level():
 	var d = get_level_data()
 	var lh = _get_level_height()
 	var scale_y = lh / 854.0
-	_add_background(d["bg"])
+	# Level'e özel arka plan (tema rengi bg tonundan seçilir); diğer her şeyin arkasında
+	backdrop = Node2D.new()
+	backdrop.name = "Backdrop"
+	backdrop.set_script(load("res://scripts/LevelBackdrop.gd"))
+	add_child(backdrop)
+	backdrop.setup(level_number, d["bg"], d["pc"], lh)
 	_add_walls()
 	var scaled_platforms = []
 	for p in d["platforms"]:
@@ -312,7 +296,7 @@ func _build_level():
 	for g in d["guards"]:
 		scaled_guards.append({"pos": Vector2(g["pos"].x, g["pos"].y * scale_y - 20), "patrol": g["patrol"]})
 	_add_guards(scaled_guards)
-	var hero_names = ["Cyborg", "Pink", "Shadow", "Mech", "Blaze"]
+	var hero_names = HeroManager.HERO_NAMES
 	AnalyticsManager.level_start(level_number, hero_names[HeroManager.get_hero()])
 
 func _build_obstacle_list(platforms: Array, exit_pos: Vector2) -> Array:
@@ -352,74 +336,13 @@ func _resolve_position(pos: Vector2, obstacles: Array, item_radius: float) -> Ve
 			break
 	return p
 
-var _bg_color: Color = Color(0.05, 0.05, 0.15)
-
-func _add_background(color: Color):
-	_bg_color = color
-	queue_redraw()
-
-func _draw():
-	var W = 480.0
-	var H = _get_level_height()
-	draw_rect(Rect2(0, -2000, W, H + 2000), _bg_color)
-	var star_positions = [
-		Vector2(45,80), Vector2(120,45), Vector2(200,90), Vector2(310,55),
-		Vector2(380,100), Vector2(430,70), Vector2(60,180), Vector2(160,150),
-		Vector2(280,130), Vector2(400,160), Vector2(90,250), Vector2(340,220),
-		Vector2(460,240), Vector2(50,340), Vector2(180,310), Vector2(390,290),
-		Vector2(240,380), Vector2(70,430), Vector2(420,400), Vector2(150,480),
-		Vector2(350,460), Vector2(30,550), Vector2(280,520), Vector2(440,540),
-	]
-	var scale_y = H / 854.0
-	for i in star_positions.size():
-		var sp = Vector2(star_positions[i].x, star_positions[i].y * scale_y)
-		var twinkle = 0.4 + sin(_bg_time * (1.2 + i * 0.15) + i) * 0.35
-		var sz = 1.0 + sin(_bg_time * 0.8 + i * 0.7) * 0.5
-		draw_circle(sp, sz, Color(0.9, 0.95, 1.0, twinkle))
-		if scale_y > 1.5:
-			for rep in range(1, int(scale_y)):
-				var sp2 = Vector2(star_positions[i].x, star_positions[i].y + rep * 854.0)
-				if sp2.y < H:
-					draw_circle(sp2, sz * 0.8, Color(0.9, 0.95, 1.0, twinkle * 0.7))
-	var sil_color = Color(_bg_color.r*1.4+0.04, _bg_color.g*1.4+0.04, _bg_color.b*1.4+0.06, 0.35)
-	var ground_y = H - 174.0
-	var buildings_right = [
-		Rect2(340, ground_y, 35, 120), Rect2(375, ground_y+20, 25, 100),
-		Rect2(400, ground_y-20, 45, 140), Rect2(445, ground_y+10, 30, 110)
-	]
-	for b in buildings_right:
-		draw_rect(b, sil_color)
-		for row in 3:
-			for col in 2:
-				var wx = b.position.x + 5 + col * 12
-				var wy = b.position.y + 15 + row * 28
-				if wx+6 < b.position.x+b.size.x and wy+8 < b.position.y+b.size.y:
-					var wt = 0.3 + sin(_bg_time*0.5+row*1.3+col*0.7)*0.2
-					draw_rect(Rect2(wx,wy,6,8), Color(1.0,0.9,0.5,wt*0.6))
-	var buildings_left = [
-		Rect2(20, ground_y, 30, 100), Rect2(50, ground_y-30, 40, 130),
-		Rect2(90, ground_y+10, 25, 90), Rect2(115, ground_y-10, 35, 110)
-	]
-	for b in buildings_left:
-		draw_rect(b, sil_color)
-		for row in 3:
-			for col in 2:
-				var wx = b.position.x + 4 + col * 11
-				var wy = b.position.y + 12 + row * 26
-				if wx+5 < b.position.x+b.size.x and wy+7 < b.position.y+b.size.y:
-					var wt = 0.3 + sin(_bg_time*0.4+row*1.1+col*0.9)*0.2
-					draw_rect(Rect2(wx,wy,5,7), Color(1.0,0.9,0.5,wt*0.5))
-	var mid_color = Color(_bg_color.r*1.2+0.02, _bg_color.g*1.2+0.02, _bg_color.b*1.2+0.04, 0.18)
-	for b in [Rect2(130,ground_y+50,50,70), Rect2(180,ground_y+30,35,90),
-			  Rect2(260,ground_y+60,40,60), Rect2(300,ground_y+40,55,80)]:
-		draw_rect(b, mid_color)
-	draw_rect(Rect2(0,ground_y+95,W,4), Color(_bg_color.r*2+0.1,_bg_color.g*2+0.1,_bg_color.b*2+0.15,0.15))
-
 func _add_walls():
 	var lh = _get_level_height()
-	_make_brick_wall(Vector2(240, lh + 20), Vector2(480, 40), "bottom")
-	_make_brick_wall(Vector2(10, lh / 2.0 - 1000), Vector2(30, lh + 2040), "left")
-	_make_brick_wall(Vector2(470, lh / 2.0 - 1000), Vector2(30, lh + 2040), "right")
+	# Zemin ve duvarlar aşağıda 600 px uzatılır: ölüm/çıkış odağında kamera zemine
+	# yakınlaştığında altta boşluk görünmesin (çarpışma yüzeyi yine y = lh)
+	_make_brick_wall(Vector2(240, lh + 300), Vector2(480, 600), "bottom")
+	_make_brick_wall(Vector2(10, (lh + 600 - 2000) / 2.0), Vector2(30, lh + 2600), "left")
+	_make_brick_wall(Vector2(470, (lh + 600 - 2000) / 2.0), Vector2(30, lh + 2600), "right")
 
 func _make_brick_wall(pos: Vector2, size: Vector2, side: String):
 	var sb = StaticBody2D.new()
@@ -576,6 +499,7 @@ func _add_player(pos: Vector2):
 	cam.limit_top = -99999
 	cam.limit_bottom = int(_get_level_height()) + 40
 	player.add_child(cam)
+	camera = cam
 	add_child(player)
 	player.player_died.connect(_on_player_died)
 
@@ -701,6 +625,26 @@ func _setup_ui():
 	var ui = CanvasLayer.new()
 	ui.name = "UILayer"
 	add_child(ui)
+
+	# Ölüm/çıkış anında olaya odaklanmak için kenarları karartan vinyet (HUD'un arkasında)
+	var vg = Gradient.new()
+	vg.offsets = PackedFloat32Array([0.0, 0.45, 1.0])
+	vg.colors = PackedColorArray([Color(1, 1, 1, 0), Color(1, 1, 1, 0.15), Color(1, 1, 1, 0.85)])
+	var vtex = GradientTexture2D.new()
+	vtex.gradient = vg
+	vtex.fill = GradientTexture2D.FILL_RADIAL
+	vtex.fill_from = Vector2(0.5, 0.5)
+	vtex.fill_to = Vector2(1.05, 0.5)
+	vtex.width = 128
+	vtex.height = 256
+	vignette = TextureRect.new()
+	vignette.texture = vtex
+	vignette.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+	vignette.stretch_mode = TextureRect.STRETCH_SCALE
+	vignette.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	vignette.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	vignette.modulate = Color(1, 1, 1, 0)
+	ui.add_child(vignette)
 
 	# HUD arkasına üstten aşağı kararan bant: açık renkli level'lerde okunurluk ve
 	# HUD'un altına denk gelen kapı/platformlarla karışmaması için
@@ -1080,9 +1024,7 @@ func _quit_from_pause():
 
 func _go_to_main_menu():
 	get_tree().paused = false
-	_save_total_score(0)
-	coins_since_last_life = 0
-	_save_lives(3)
+	_reset_run()
 	get_tree().change_scene_to_file("res://scenes/MainMenu.tscn")
 
 func _notification(what):
@@ -1226,7 +1168,7 @@ func _draw():
 # ─── INPUT ───────────────────────────────────────────────────────────────────
 
 func _input(event):
-	if not level_active:
+	if not level_active or _exiting or (player and player.is_dead):
 		return
 	if event is InputEventScreenTouch:
 		if event.pressed:
@@ -1357,24 +1299,148 @@ func _on_coin_collected(_value: int):
 			_show_life_gained()
 	_update_score_ui()
 
+# ─── LEVEL GİRİŞİ: başlık + kahramanın ışınlanması ───────────────────────────
+
+func _play_level_intro() -> void:
+	var ui = get_node_or_null("UILayer")
+	if ui == null or player == null:
+		return
+	var vh = get_viewport().get_visible_rect().size.y
+	var accent = get_level_data()["pc"].lightened(0.35)
+	var box = Control.new()
+	box.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	box.position = Vector2(0, vh * 0.3)
+	box.size = Vector2(480, 90)
+	box.pivot_offset = Vector2(240, 40)
+	ui.add_child(box)
+	var title = Label.new()
+	title.text = "LEVEL %d" % level_number
+	title.position = Vector2(0, 0)
+	title.size = Vector2(480, 64)
+	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	title.add_theme_font_size_override("font_size", 50)
+	title.add_theme_color_override("font_color", Color(1, 1, 1))
+	title.add_theme_color_override("font_outline_color", Color(accent.r * 0.35, accent.g * 0.35, accent.b * 0.35))
+	title.add_theme_constant_override("outline_size", 10)
+	title.add_theme_color_override("font_shadow_color", Color(accent.r, accent.g, accent.b, 0.6))
+	title.add_theme_constant_override("shadow_outline_size", 18)
+	box.add_child(title)
+	var sub = Label.new()
+	# tema adı harfleri aralıklı: "D E E P  O C E A N"
+	sub.text = " ".join(backdrop.theme_title.split("")) if backdrop else ""
+	sub.position = Vector2(0, 64)
+	sub.size = Vector2(480, 24)
+	sub.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	sub.add_theme_font_size_override("font_size", 15)
+	sub.add_theme_color_override("font_color", accent)
+	sub.add_theme_color_override("font_outline_color", Color(0, 0, 0, 0.8))
+	sub.add_theme_constant_override("outline_size", 4)
+	box.add_child(sub)
+	box.modulate = Color(1, 1, 1, 0)
+	box.scale = Vector2(1.25, 1.25)
+	var tw = box.create_tween()
+	tw.tween_interval(0.15)
+	tw.tween_property(box, "modulate:a", 1.0, 0.25)
+	tw.parallel().tween_property(box, "scale", Vector2.ONE, 0.35).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
+	tw.tween_interval(0.9)
+	tw.tween_property(box, "modulate:a", 0.0, 0.4)
+	tw.tween_callback(box.queue_free)
+
+	# Kahraman ışık sütunuyla iner (çıkış kapısındaki çekilmenin tersi)
+	var fx = Node2D.new()
+	fx.set_script(load("res://scripts/SpawnFX.gd"))
+	fx.position = player.position
+	fx.color = accent
+	add_child(fx)
+	var vis = player.get_node_or_null("Visual")
+	if vis:
+		vis.scale = Vector2(0.2, 2.0)
+		vis.modulate = Color(2.5, 2.5, 2.5, 0.0)
+		var vt = vis.create_tween().set_parallel(true)
+		vt.tween_property(vis, "scale", Vector2.ONE, 0.4).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
+		vt.tween_property(vis, "modulate", Color(1, 1, 1, 1), 0.45)
+	SoundManager.play_sfx("beam_in", -6.0)
+
+# ─── KAMERA ODAĞI (ölüm ve çıkış anları) ──────────────────────────────────────
+
+# Kamerayı oyuncudan ayırıp verilen noktaya kilitler ve yakınlaştırır
+func _focus_camera(point: Vector2, zoom: float, dur: float) -> void:
+	if camera == null:
+		return
+	var center = camera.get_screen_center_position()
+	_cam_focus = true
+	if camera.get_parent() != self:
+		camera.reparent(self)
+	camera.position_smoothing_enabled = false
+	camera.offset = Vector2.ZERO
+	# Zemindeki olay da ekranın ortasına gelebilsin
+	camera.limit_bottom = int(_get_level_height()) + 420
+	camera.global_position = center
+	var tw = create_tween().set_parallel(true).set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_OUT)
+	tw.tween_property(camera, "global_position", point, dur)
+	tw.tween_property(camera, "zoom", Vector2(zoom, zoom), dur)
+
+func _start_shake(dur: float, amp: float) -> void:
+	_shake_t = dur
+	_shake_len = dur
+	_shake_amp = amp
+
+func _show_vignette(tint: Color, strength: float, dur: float) -> void:
+	if vignette == null:
+		return
+	# Kenarlar olayın renginde çok koyu bir tonla kararır
+	vignette.self_modulate = Color(tint.r * 0.12, tint.g * 0.12, tint.b * 0.12)
+	var tw = vignette.create_tween()
+	tw.tween_property(vignette, "modulate:a", strength, dur)
+
+func _hide_play_hud() -> void:
+	for n in [pause_button, indicators, tap_hint, tutorial]:
+		if n != null and is_instance_valid(n):
+			n.visible = false
+
+# Player.die() çağırır: animasyon süresince kamera kahramana kilitlenir
+func on_player_death_started(p: Node2D, cause: String) -> void:
+	active_touches.clear()
+	_deactivate_all_magnets()
+	_hide_play_hud()
+	# kahraman ekranın biraz altında kalsın: üstte efektlere (kıvılcım, duman) yer açılır
+	_focus_camera(p.global_position + Vector2(0, -36), 1.9, 0.35)
+	if cause == "laser":
+		_start_shake(0.5, 6.0)
+		_show_vignette(Color(0.4, 0.8, 1.0), 0.75, 0.3)
+		LevelTransition.flash_color(Color(0.75, 0.95, 1.0, 0.5))
+	else:
+		_start_shake(0.4, 10.0)
+		_show_vignette(Color(1.0, 0.35, 0.35), 0.75, 0.3)
+		LevelTransition.flash_color(Color(1.0, 0.85, 0.8, 0.45))
+	_vibrate(400)
+
+# ExitDoor çağırır: kapıya odaklanma; level_complete ExitDoor animasyonu bitince gelir
+func on_exit_started(door: Node2D) -> void:
+	_exiting = true
+	active_touches.clear()
+	_deactivate_all_magnets()
+	_hide_play_hud()
+	_focus_camera(door.global_position + Vector2(0, -6), 1.75, 0.45)
+	_show_vignette(Color(0.5, 1.0, 0.85), 0.7, 0.4)
+	_vibrate(60)
+
 func _on_player_died():
 	if not level_active:
 		return
 	level_active = false
 	if pause_button:
 		pause_button.visible = false
-	var hero_names = ["Cyborg", "Pink", "Shadow", "Mech", "Blaze"]
+	var hero_names = HeroManager.HERO_NAMES
 	AnalyticsManager.level_fail(level_number, hero_names[HeroManager.get_hero()], coins_collected)
 	_deactivate_all_magnets()
-	LevelTransition.flash_death()
-	_vibrate(400)
 	lives -= 1
 	if lives <= 0:
 		lives = 0
 		_save_lives(3)
-		# 0 puanlık oyunlar tabloyu doldurmasın
-		var entries = _add_score_to_leaderboard(total_score, level_number) if total_score > 0 else _load_leaderboard()
-		var is_new_record = entries.size() > 0 and entries[0]["score"] == total_score and total_score > 0
+		# Koşunun satırı son haliyle güncellenir (0 puan yazılmaz)
+		var entries = Leaderboard.record(total_score, level_number)
+		var is_new_record = total_score > 0 and entries.size() > 0 and Leaderboard.is_current_run(entries[0])
 		await get_tree().create_timer(0.6).timeout
 		_show_game_over(is_new_record)
 	else:
@@ -1392,27 +1458,29 @@ func _on_level_complete():
 		if tf:
 			tf.store_8(1)
 		AnalyticsManager.design_event("Tutorial:Complete")
-	var hero_names = ["Cyborg", "Pink", "Shadow", "Mech", "Blaze"]
+	var hero_names = HeroManager.HERO_NAMES
 	var hero_name = hero_names[HeroManager.get_hero()]
 	AnalyticsManager.level_complete(level_number, hero_name, _calculate_stars(), coins_collected)
 	_deactivate_all_magnets()
 	_vibrate(150)
 	_save_total_score(total_score)
 	_save_lives(lives)
+	# Her level bitişinde koşunun skoru tabloya işlenir; oyuncu sonra menüye dönse de kaybolmaz
+	var lb_entries = Leaderboard.record(total_score, level_number)
 	var max_lvl = _load_max_level()
 	if level_number + 1 > max_lvl:
 		_save_max_level(min(level_number + 1, 50))
 	var stars = _calculate_stars()
 	_save_stars(level_number, stars)
 	if next_level_path == "":
-		var entries = _add_score_to_leaderboard(total_score, level_number)
-		var is_new_record = entries.size() > 0 and entries[0]["score"] == total_score
+		var is_new_record = total_score > 0 and lb_entries.size() > 0 and Leaderboard.is_current_run(lb_entries[0])
 		_show_result(true, is_new_record, stars)
 	else:
 		_show_result(true, false, stars)
 
 func _show_result(success: bool, is_new_record: bool = false, stars: int = 0):
-	await get_tree().create_timer(0.5).timeout
+	# Animasyonlar (ölüm/kapı) zaten bitmiş oluyor; kısa bir nefes payı yeterli
+	await get_tree().create_timer(0.25 if success else 0.35).timeout
 	var ui = get_node_or_null("UILayer")
 	if not ui:
 		return
@@ -1528,8 +1596,7 @@ func _on_next_level():
 		LevelTransition.flash_and_load(next_level_path)
 
 func _on_restart_from_beginning():
-	_save_total_score(0)
-	_save_lives(3)
+	_reset_run()
 	LevelTransition.flash_and_load("res://scenes/Level1.tscn")
 
 func _show_game_over(is_new_record: bool = false):
@@ -1595,7 +1662,7 @@ func _show_game_over(is_new_record: bool = false):
 	panel.add_child(lb_title)
 
 	# Kutu kayıt sayısı kadar uzar; tek kayıtta koca boş alan kalmasın
-	var entries = _load_leaderboard()
+	var entries = Leaderboard.load_entries()
 	var lb_h = max(1, min(entries.size(), 5)) * 34 + 10
 	var lb_bg = ColorRect.new()
 	lb_bg.size = Vector2(360, lb_h)
@@ -1613,7 +1680,7 @@ func _show_game_over(is_new_record: bool = false):
 	for i in min(entries.size(), 5):
 		var e = entries[i]
 		var row_y = 270 + i * 34
-		var is_current = e["score"] == total_score and e["level"] == level_number
+		var is_current = Leaderboard.is_current_run(e)
 		var row_color = Color(1.0, 0.85, 0.0, 1.0) if is_current else Color(0.7, 0.7, 0.9, 0.85)
 		var medal_lbl = Label.new()
 		medal_lbl.text = medals[i]
@@ -1703,9 +1770,7 @@ func _show_game_over(is_new_record: bool = false):
 	retry2.add_theme_font_size_override("font_size", 20)
 	retry2.add_theme_color_override("font_color", Color(0.3, 0.7, 1.0))
 	retry2.pressed.connect(func():
-		_save_total_score(0)
-		coins_since_last_life = 0
-		_save_lives(3)
+		_reset_run()
 		get_tree().change_scene_to_file("res://scenes/Level1.tscn")
 	)
 	panel.add_child(retry2)
@@ -1723,9 +1788,7 @@ func _show_game_over(is_new_record: bool = false):
 	btn.add_theme_font_size_override("font_size", 20)
 	btn.add_theme_color_override("font_color", Color(1.0, 0.5, 0.5))
 	btn.pressed.connect(func():
-		_save_total_score(0)
-		coins_since_last_life = 0
-		_save_lives(3)
+		_reset_run()
 		get_tree().change_scene_to_file("res://scenes/MainMenu.tscn")
 	)
 	panel.add_child(btn)

@@ -5,12 +5,35 @@ var is_open: bool = true
 var pulse_time: float = 0.0
 var is_playing_open: bool = false
 var open_flash: float = 0.0
+# Kahraman kapıya girerken çalan zaman çizelgesi (ExitDoor ile eşzamanlı):
+# 0..SUCK_TIME çekilme (girdap hızlanır, ışık sütunu, içe akan çizgiler) -> patlama -> parlama
+const SUCK_TIME := 0.55
+var enter_t: float = -1.0
+var fx: Array = []
+var _spin_boost: float = 0.0
 
 func _ready():
 	z_index = 1
 
 func _process(delta):
-	pulse_time += delta
+	pulse_time += delta * (1.0 + _spin_boost)
+	if enter_t >= 0.0:
+		var prev = enter_t
+		enter_t += delta
+		_spin_boost = 3.5 * clamp(enter_t / SUCK_TIME, 0.0, 1.0) if enter_t < SUCK_TIME else max(0.0, 3.5 - (enter_t - SUCK_TIME) * 6.0)
+		if enter_t < SUCK_TIME and randf() < 0.85:
+			_spawn_inflow()
+		if prev < SUCK_TIME and enter_t >= SUCK_TIME:
+			_spawn_burst()
+	for p in fx:
+		p.life += delta
+		if p.kind == "inflow":
+			p.ang += p.spin * delta
+			p.r = max(0.0, p.r - p.speed * delta)
+		else:
+			p.pos += p.vel * delta
+			p.vel *= pow(0.93, delta * 60.0)
+	fx = fx.filter(func(p): return p.life < p.max_life and (p.kind != "inflow" or p.r > 2.0))
 	if is_open:
 		open_anim = min(open_anim + delta * 2.0, 1.0)
 	if is_playing_open:
@@ -19,6 +42,22 @@ func _process(delta):
 
 func play_open():
 	is_playing_open = true
+
+func play_enter():
+	play_open()
+	enter_t = 0.0
+
+func _spawn_inflow():
+	fx.append({"kind": "inflow", "ang": randf() * TAU, "r": randf_range(70.0, 120.0), "speed": randf_range(160.0, 260.0),
+		"spin": randf_range(4.0, 7.0), "life": 0.0, "max_life": 0.8,
+		"color": Color(0.5, 1.0, 0.7) if randf() < 0.7 else Color(1.0, 0.9, 0.5)})
+
+func _spawn_burst():
+	for i in 26:
+		var a = randf() * TAU
+		fx.append({"kind": "sparkle", "pos": Vector2(0, -6), "vel": Vector2(cos(a), sin(a)) * randf_range(120.0, 320.0),
+			"life": 0.0, "max_life": randf_range(0.45, 0.8), "size": randf_range(2.0, 4.5),
+			"color": [Color(1.0, 0.95, 0.6), Color(0.6, 1.0, 0.75), Color(1, 1, 1)][i % 3]})
 
 func _octagon_points(center: Vector2, radius: float, rotation_offset: float) -> PackedVector2Array:
 	var pts = PackedVector2Array()
@@ -139,3 +178,55 @@ func _draw():
 	draw_line(Vector2(0, sign_pos.y + sign_h), Vector2(0, center.y - outer_r), Color(gold.r, gold.g, gold.b, 0.7), 4.0)
 	draw_circle(Vector2(0, sign_pos.y + sign_h), 3.5, gold)
 	draw_circle(Vector2(0, center.y - outer_r), 3.5, gold)
+	_draw_enter_fx(center, outer_r)
+
+func _draw_enter_fx(center: Vector2, outer_r: float) -> void:
+	if enter_t < 0.0 and fx.is_empty():
+		return
+	var et = max(enter_t, 0.0)
+	# Dikey ışık sütunu: çekilmede yükselir, patlamadan sonra söner
+	var beam = clamp(et / 0.25, 0.0, 1.0) * clamp(1.0 - (et - SUCK_TIME) / 0.45, 0.0, 1.0)
+	if beam > 0.0:
+		var bw = 18.0 + 10.0 * sin(et * 30.0) * 0.3
+		var h = 260.0 * beam
+		for side in [-1.0, 1.0]:
+			var tip = center + Vector2(0, side * h)
+			var pts = PackedVector2Array([center + Vector2(-bw, 0), center + Vector2(bw, 0), tip + Vector2(bw * 0.15, 0), tip - Vector2(bw * 0.15, 0)])
+			var cols = PackedColorArray([Color(0.7, 1.0, 0.8, 0.55 * beam), Color(0.7, 1.0, 0.8, 0.55 * beam), Color(0.7, 1.0, 0.8, 0.0), Color(0.7, 1.0, 0.8, 0.0)])
+			draw_polygon(pts, cols)
+			var core = PackedVector2Array([center + Vector2(-bw * 0.3, 0), center + Vector2(bw * 0.3, 0), tip, tip])
+			draw_polygon(core, PackedColorArray([Color(1, 1, 1, 0.8 * beam), Color(1, 1, 1, 0.8 * beam), Color(1, 1, 1, 0), Color(1, 1, 1, 0)]))
+	# Çekilme sırasında girdap etrafında büyüyen hale
+	if et < SUCK_TIME:
+		var k = et / SUCK_TIME
+		draw_arc(center, outer_r + 8.0 + 10.0 * k, et * 9.0, et * 9.0 + TAU * 0.8, 40, Color(0.6, 1.0, 0.7, 0.6 * k), 2.5, true)
+		draw_arc(center, outer_r + 18.0 + 14.0 * k, -et * 7.0, -et * 7.0 + TAU * 0.6, 40, Color(1.0, 0.9, 0.5, 0.4 * k), 2.0, true)
+	# Patlama: beyaz çekirdek, şok halkası, dönen ışık hüzmeleri
+	var bt = et - SUCK_TIME
+	if bt >= 0.0 and bt < 0.6:
+		var k2 = bt / 0.6
+		draw_circle(center, 40.0 * (1.0 - k2) + 6.0, Color(1, 1, 1, 0.9 * (1.0 - k2)))
+		draw_arc(center, 20.0 + 120.0 * k2, 0.0, TAU, 64, Color(0.75, 1.0, 0.85, 0.85 * (1.0 - k2)), 4.0 * (1.0 - k2) + 1.0, true)
+		draw_arc(center, 10.0 + 80.0 * k2, 0.0, TAU, 48, Color(1.0, 0.95, 0.6, 0.6 * (1.0 - k2)), 2.0, true)
+		for i in 12:
+			var a = TAU * i / 12.0 + bt * 2.0
+			var ln = 40.0 + 90.0 * k2
+			var dir = Vector2(cos(a), sin(a))
+			var side = dir.orthogonal() * 3.5 * (1.0 - k2)
+			draw_colored_polygon(PackedVector2Array([center + side, center - side, center + dir * ln]),
+				Color(1.0, 1.0, 0.85, 0.5 * (1.0 - k2)))
+	# Parçacıklar
+	for p in fx:
+		var k3 = p.life / p.max_life
+		if p.kind == "inflow":
+			var pos = center + Vector2(cos(p.ang), sin(p.ang)) * p.r
+			var tail = center + Vector2(cos(p.ang - 0.12), sin(p.ang - 0.12)) * (p.r + 7.0)
+			draw_line(tail, pos, Color(p.color.r, p.color.g, p.color.b, 0.85 * min(1.0, p.r / 30.0)), 2.0, true)
+		else:
+			var c: Color = p.color
+			var sz = p.size * (1.0 - k3 * 0.6)
+			var col = Color(c.r, c.g, c.b, 1.0 - k3)
+			draw_colored_polygon(PackedVector2Array([p.pos + Vector2(0, -sz * 1.6), p.pos + Vector2(sz * 0.5, 0),
+				p.pos + Vector2(0, sz * 1.6), p.pos + Vector2(-sz * 0.5, 0)]), col)
+			draw_colored_polygon(PackedVector2Array([p.pos + Vector2(-sz * 1.6, 0), p.pos + Vector2(0, sz * 0.5),
+				p.pos + Vector2(sz * 1.6, 0), p.pos + Vector2(0, -sz * 0.5)]), col)

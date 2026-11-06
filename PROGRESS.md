@@ -4,6 +4,15 @@ Son güncelleme: 2026-11-02 (Windows PC oturumu)
 
 Bu dosya başka bir bilgisayarda devam edecek Claude oturumu için yazıldı. Önce bunu, sonra teknik kurallar için [CLAUDE.md](CLAUDE.md)'yi oku. Kullanıcıyla Türkçe konuş; oyun içi metinler her zaman İngilizce.
 
+## 2026-11-06 — 1.1.0 (code 4) geliştirmeleri (Mac oturumu)
+1. **Ölüm animasyonu yeniden tasarlandı:** eski "iki dikdörtgen" + kare parçacıklar kaldırıldı. Lazer: elektrik arkları, mavi titreşim, kömürleşme, alev, kül; bekçi: darbe, savrulma, sersemleme yıldızları, dişli parçaları. Kamera kahramana yakınlaşır, sarsılır, vinyet; "Ahh!" + zap/darbe sesi senkron (sesler `tools/gen_sfx.py` ile sentezlendi).
+2. **6. kahraman POLARIS** (at nalı mıknatıs omuzlar, pusula göğüs, süzülen gövde) 3 reklamla açılıyor; menü 4+2 düzen; reklam kilidi genelleştirildi (Blaze ilerlemesi korunur).
+3. **Arka planlar:** binalar kaldırıldı; 8 tema, parallax katmanlar, parçacıklar, level başına farklı yerleşim; pişirme ile eskisinden daha az çizim çağrısı.
+4. **Çıkış kapısı:** kamera odağı, spiral çekilme, ışık sütunu, patlama + başarı zili; yeni level'de "LEVEL N / TEMA" başlığı ve ışınlanma.
+5. **BOARD hatası:** kök neden kaydın yalnızca game over/Level 50'de yazılmasıydı. Artık her koşu tek satır, her level bitişinde güncelleniyor; eski kayıtlar taşındı.
+- Masaüstünde (Godot 4.6.3, 480x854 / 480x1040) test edildi: 50 level hatasız açılıyor, akışlar (level geçişi, retry, game over, board, Polaris kilidi) çalışıyor. **Telefonda henüz denenmedi**; sesler sentetik, cihazda dinlenmeli.
+- AAB bu Mac'te derlenemez: release keystore Windows PC'de.
+
 ## 1. Kısa özet
 
 - **Oyun:** Magnet Shift. Godot 4.6, dikey mobil oyun, 50 level. Dokunduğun noktaya en yakın mıknatıs, parmak basılı kaldıkça oyuncuyu çeker. Coin topla, lazer ve bekçiden kaç, çıkış kapısına ulaş.

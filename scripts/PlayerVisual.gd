@@ -4,15 +4,37 @@ var time: float = 0.0
 var is_dead: bool = false
 var is_pulled: bool = false
 var pull_intensity: float = 0.0
-var hero_id: int = 0  # 0=Cyborg, 1=Pink, 2=Shadow, 3=Mech, 4=Blaze
+var hero_id: int = 0  # 0=Cyborg, 1=Pink, 2=Shadow, 3=Mech, 4=Blaze, 5=Polaris
 # Menü önizlemesi için: >= 0 ise seçili kahraman yerine bu çizilir
 var preview_hero: int = -1
 
 func _ready():
 	hero_id = preview_hero if preview_hero >= 0 else HeroManager.get_hero()
 
+# Ölüm animasyonu: kahraman kendi çizimiyle kalır, üstüne dönüşüm ve renk uygulanır
+# (efektler kardeş düğüm DeathFX'te). Süre GameManager/Player ile eşleşmeli: Player.DEATH_TIME
+var dying: bool = false
+var death_t: float = 0.0
+var death_cause: String = ""
+const HERO_ACCENTS = [Color(0.0, 0.83, 1.0), Color(1.0, 0.4, 0.7), Color(0.6, 0.1, 0.9),
+	Color(0.5, 1.0, 0.1), Color(1.0, 0.45, 0.05), Color(0.72, 0.42, 1.0)]
+
+func accent_color() -> Color:
+	return HERO_ACCENTS[clamp(hero_id, 0, HERO_ACCENTS.size() - 1)]
+
+func play_death(cause: String) -> void:
+	dying = true
+	death_t = 0.0
+	death_cause = cause
+	z_index = 5
+
 func _process(delta):
 	time += delta
+	if dying:
+		death_t += delta
+		modulate = _death_modulate()
+		queue_redraw()
+		return
 	var player = get_parent()
 	if player and "active_magnet" in player:
 		var has_magnet = player.active_magnet != null
@@ -22,18 +44,68 @@ func _process(delta):
 
 func set_dead(dead: bool):
 	is_dead = dead
-	queue_redraw()
+	if dead and not dying:
+		play_death("")
+
+func _ease(x: float) -> float:
+	x = clamp(x, 0.0, 1.0)
+	return x * x * (3.0 - 2.0 * x)
+
+func _death_modulate() -> Color:
+	var t = death_t
+	if death_cause == "laser":
+		if t < 0.05:
+			return Color(3.0, 3.0, 3.2)
+		if t < 0.55:
+			# elektrik: normal ile parlak mavi arasında hızlı titreşim
+			return Color(0.55, 1.45, 2.1) if int(t * 30.0) % 2 == 0 else Color(1.1, 1.15, 1.25)
+		var charred = Color(0.2, 0.14, 0.12)
+		var c = Color(1.0, 1.0, 1.0).lerp(charred, _ease((t - 0.55) / 0.3))
+		c.a = 1.0 - _ease((t - 0.88) / 0.3)
+		return c
+	# bekçi: beyaz darbe parlaması -> kırmızı -> normal -> parçalanırken sönme
+	if t < 0.06:
+		return Color(2.6, 2.6, 2.6)
+	var c2 = Color(1.7, 0.45, 0.45).lerp(Color(1, 1, 1), _ease((t - 0.06) / 0.4))
+	c2.a = 1.0 - _ease((t - 0.78) / 0.2)
+	return c2
 
 func _draw():
-	if is_dead:
-		_draw_dead()
-		return
+	if dying:
+		draw_set_transform_matrix(_current_death_xform())
+	_draw_hero()
+
+func _current_death_xform() -> Transform2D:
+	var t = death_t
+	var off = Vector2.ZERO
+	var rot = 0.0
+	var sc = Vector2.ONE
+	if death_cause == "laser":
+		var shake = 2.8 * (1.0 - _ease(t / 0.6))
+		off = Vector2(sin(t * 97.0) * shake, cos(t * 83.0) * shake * 0.6)
+		var k = _ease((t - 0.5) / 0.35)
+		rot = 0.42 * k
+		off += Vector2(3.0 * k, 5.0 * k)
+		sc = Vector2(1.0 + 0.04 * k, 1.0 - 0.12 * k)
+	else:
+		# darbeyle havaya fırlayıp bir tur dönerek yere yan yatar
+		var u = _ease(t / 0.55)
+		off = Vector2(14.0 * u, -30.0 * sin(PI * min(t / 0.55, 1.0)))
+		rot = (TAU + PI * 0.5) * u
+		var sq = sin(PI * clamp(t / 0.12, 0.0, 1.0)) * 0.25
+		sc = Vector2(1.0 + sq, 1.0 - sq)
+	# Gövde merkezi (0,-6) etrafında döndür/ölçekle
+	var pivot = Vector2(0, -6)
+	return Transform2D(0, pivot + off) * Transform2D(rot, sc, 0, Vector2.ZERO) * Transform2D(0, -pivot)
+
+func _draw_hero():
 	match hero_id:
 		0: _draw_cyborg()
 		1: _draw_pink()
 		2: _draw_shadow()
 		3: _draw_mech()
 		4: _draw_blaze()
+		5: _draw_polaris()
 		_: _draw_cyborg()
 
 # ── CYBORG (orijinal mavi/gri) ────────────────────────────────────────────
@@ -362,19 +434,6 @@ func _draw_shadow():
 
 	draw_ellipse_approx(Vector2(0, 24), 14, 3, Color(0.3, 0.0, 0.5, 0.3 - pull_intensity * 0.1))
 # ── ÖLÜM ─────────────────────────────────────────────────────────────────────
-func _draw_dead():
-	var body_color = [Color(0.5, 0.15, 0.15), Color(0.6, 0.3, 0.4), Color(0.15, 0.05, 0.2), Color(0.1, 0.25, 0.1), Color(0.55, 0.18, 0.04)][hero_id]
-	draw_rect(Rect2(-12, -8, 24, 30), body_color)
-	draw_rect(Rect2(-11, -24, 22, 18), body_color * 0.8)
-	draw_line(Vector2(-8, -22), Vector2(-2, -16), Color(1.0, 0.2, 0.2), 2.0)
-	draw_line(Vector2(-2, -22), Vector2(-8, -16), Color(1.0, 0.2, 0.2), 2.0)
-	draw_line(Vector2(2, -22), Vector2(8, -16), Color(1.0, 0.2, 0.2), 2.0)
-	draw_line(Vector2(8, -22), Vector2(2, -16), Color(1.0, 0.2, 0.2), 2.0)
-	for i in 4:
-		var angle = TAU * i / 4.0 + time
-		var r = 16 + sin(time * 5 + i) * 4
-		draw_circle(Vector2(cos(angle) * r, sin(angle) * r - 4), 2.0, Color(1.0, 0.3 + sin(time * 8 + i) * 0.3, 0.0, 0.7))
-
 # ── MECH (altın/yeşil ağır zırh) ─────────────────────────────────────────────
 # ── MECH (altın/yeşil ağır zırh, yeniden tasarlandı) ──────────────────────────
 func _draw_mech():
@@ -581,6 +640,173 @@ func _flame(base: Vector2, half_w: float, h: float, color: Color):
 		base + Vector2(half_w, 0),
 		base + Vector2(0, half_w * 0.5),
 	]), color)
+
+# ── POLARIS (manyetik alanın kendisi: kutuplara bölünmüş, havada süzülen android) ──
+# Omuzları başını çevreleyen bir at nalı mıknatıs (uçlarda N kırmızı / S mavi başlık),
+# göğsünde oyuncunun tuttuğu mıknatısa dönen pusula, gövdeden ayrık süzülen eldivenler,
+# yörüngede dönen minik mıknatıslar ve dalgalanan alan çizgisi pelerini. Bacakları yok;
+# altındaki alan halkalarıyla süzülür. Not: burada draw_set_transform kullanılmaz (ölüm
+# animasyonunun dönüşümünü bozmasın diye); elipsler noktalarla çizilir.
+func _draw_polaris():
+	var pulse = sin(time * 2.2) * 0.5 + 0.5
+	var p = pull_intensity
+	var north = Color(0.9, 0.18, 0.26)
+	var north_dark = Color(0.5, 0.07, 0.13)
+	var south = Color(0.22, 0.45, 1.0)
+	var south_dark = Color(0.08, 0.17, 0.52)
+	var silver = Color(0.84, 0.87, 0.94)
+	var silver_dark = Color(0.48, 0.51, 0.62)
+	var violet = Color(0.72, 0.42, 1.0)
+	var hover = sin(time * 2.6) * 1.6
+	var o = Vector2(0, hover)
+
+	# Aura
+	var glow_size = 23 + p * 13
+	draw_circle(o + Vector2(0, -6), glow_size + 5, Color(violet.r, violet.g, violet.b, (0.05 + p * 0.12) * 0.6))
+	draw_circle(o + Vector2(0, -6), glow_size, Color(violet.r, violet.g, violet.b, 0.06 + p * 0.2 + pulse * 0.04))
+
+	# Alan çizgisi pelerini (arkada): omuzlardan aşağı dalgalanır, çekilince gerilir
+	for i in 5:
+		var side = -1.0 if i < 2 else (1.0 if i > 2 else 0.0)
+		var start = o + Vector2(side * 11.0, -8.0)
+		var spread = (i - 2) * 6.5
+		var pts = PackedVector2Array()
+		var cols = PackedColorArray()
+		for j in 9:
+			var k = j / 8.0
+			var wave = sin(time * 4.0 + i * 1.3 + k * 5.0) * (4.0 - p * 2.5) * k
+			pts.append(start + Vector2(spread * k * 1.6 + wave, k * (30.0 - p * 6.0)))
+			cols.append(north.lerp(violet, k).lerp(south, clamp((i - 1) / 3.0, 0.0, 1.0) * k) * Color(1, 1, 1, 0.75 * (1.0 - k * 0.7)))
+		draw_polyline_colors(pts, cols, 1.6, true)
+
+	# Yörüngedeki mıknatıs parçaları: arkadakiler
+	var shards = []
+	for i in 3:
+		var a = time * (1.5 + p * 2.0) + i * TAU / 3.0
+		shards.append({"a": a, "pos": o + Vector2(cos(a) * 27.0, -5.0 + sin(a) * 8.0), "front": sin(a) > 0.0})
+	for sh in shards:
+		if not sh.front:
+			_mini_magnet(sh.pos, 3.2, sh.a * 0.5, 0.5)
+
+	# Süzülme alanı: aşağı akan halkalar + demir tozu
+	for i in 3:
+		var ph = fmod(time * (0.9 + p) + i / 3.0, 1.0)
+		var ry = 2.5 + ph * 3.0
+		var rx = 8.0 + ph * 11.0
+		var ring_a = (1.0 - ph) * (0.45 + p * 0.4)
+		_ellipse_ring(o + Vector2(0, 15.0 + ph * 12.0), rx, ry, Color(violet.r, violet.g, violet.b, ring_a), 1.4)
+	for i in 6:
+		var dk = fmod(time * 0.8 + i * 0.37, 1.0)
+		draw_circle(o + Vector2(sin(i * 2.1) * 9.0, 12.0 + dk * 18.0), 0.9, Color(0.75, 0.78, 0.9, 0.7 * (1.0 - dk)))
+
+	# Enerji kuyruğu (bacak yerine)
+	draw_polygon(PackedVector2Array([o + Vector2(-9, 7), o + Vector2(9, 7), o + Vector2(0, 23 + p * 3.0)]),
+		PackedColorArray([Color(violet.r, violet.g, violet.b, 0.95), Color(violet.r, violet.g, violet.b, 0.95), Color(1, 1, 1, 0.0)]))
+	draw_polygon(PackedVector2Array([o + Vector2(-4, 7), o + Vector2(4, 7), o + Vector2(0, 17 + p * 3.0)]),
+		PackedColorArray([Color(1, 1, 1, 0.8), Color(1, 1, 1, 0.8), Color(1, 1, 1, 0.0)]))
+
+	# Gövde: sol yarı kuzey (kırmızı), sağ yarı güney (mavi), ortada gümüş omurga
+	draw_colored_polygon(PackedVector2Array([o + Vector2(-12, -9), o + Vector2(0, -9), o + Vector2(0, 9), o + Vector2(-7, 9), o + Vector2(-11, 2)]), north)
+	draw_colored_polygon(PackedVector2Array([o + Vector2(0, -9), o + Vector2(12, -9), o + Vector2(11, 2), o + Vector2(7, 9), o + Vector2(0, 9)]), south)
+	draw_colored_polygon(PackedVector2Array([o + Vector2(-12, -9), o + Vector2(-9, -9), o + Vector2(-9.5, 3), o + Vector2(-11, 2)]), north_dark)
+	draw_colored_polygon(PackedVector2Array([o + Vector2(9, -9), o + Vector2(12, -9), o + Vector2(11, 2), o + Vector2(9.5, 3)]), south_dark)
+	draw_colored_polygon(PackedVector2Array([o + Vector2(-1.6, -9), o + Vector2(1.6, -9), o + Vector2(1.2, 9), o + Vector2(-1.2, 9)]), silver)
+	draw_colored_polygon(PackedVector2Array([o + Vector2(-8, 6), o + Vector2(8, 6), o + Vector2(7, 9), o + Vector2(-7, 9)]), silver_dark)
+
+	# Pusula çekirdeği: iğne tutulan mıknatısa döner, yoksa hafifçe salınır
+	var needle_ang = -PI / 2 + sin(time * 1.3) * 0.5
+	var pl = get_parent()
+	if pl and "active_magnet" in pl and pl.active_magnet and is_instance_valid(pl.active_magnet):
+		needle_ang = (pl.active_magnet.global_position - pl.global_position).angle()
+	var cc = o + Vector2(0, -1)
+	draw_circle(cc, 6.2, Color(0.05, 0.06, 0.16))
+	draw_arc(cc, 6.2, 0.0, TAU, 20, silver, 1.4, true)
+	for t in 4:
+		var ta = t * PI / 2
+		draw_line(cc + Vector2(cos(ta), sin(ta)) * 4.6, cc + Vector2(cos(ta), sin(ta)) * 5.6, Color(silver.r, silver.g, silver.b, 0.7), 1.0)
+	var nd = Vector2(cos(needle_ang), sin(needle_ang))
+	var nn = nd.orthogonal() * 1.6
+	draw_colored_polygon(PackedVector2Array([cc + nn, cc + nd * 5.0, cc - nn]), north.lightened(0.2))
+	draw_colored_polygon(PackedVector2Array([cc - nn, cc - nd * 4.0, cc + nn]), Color(0.9, 0.92, 1.0))
+	draw_circle(cc, 1.1, silver)
+	if p > 0.2:
+		draw_circle(cc, 8.0, Color(violet.r, violet.g, violet.b, p * 0.25))
+
+	# Süzülen eldivenler ve onları omuza bağlayan alan çizgileri
+	for side in [-1.0, 1.0]:
+		var hand = o + Vector2(side * 20.0, 3.0 + sin(time * 2.0 + side) * 2.2 - p * 3.0)
+		var col = north if side < 0 else south
+		var arc = PackedVector2Array()
+		for j in 7:
+			var k = j / 6.0
+			arc.append((o + Vector2(side * 13.0, -6.0)).lerp(hand, k) + Vector2(side * sin(k * PI) * 4.0, 0))
+		draw_polyline(arc, Color(violet.r, violet.g, violet.b, 0.35 + p * 0.3), 1.0, true)
+		draw_circle(hand, 6.0, Color(col.r, col.g, col.b, 0.18 + p * 0.2))
+		draw_circle(hand, 4.4, silver_dark)
+		draw_circle(hand + Vector2(-0.8, -0.8), 3.4, silver)
+		draw_circle(hand + Vector2(side * 0.6, 0.6), 1.8, col)
+		for f in 3:
+			draw_circle(hand + Vector2(side * 3.6, -2.6 + f * 2.4), 1.2, silver_dark)
+
+	# At nalı omuzlar: başın iki yanından yükselen mıknatıs kolları + kutup başlıkları
+	var collar = PackedVector2Array()
+	for j in 13:
+		var a2 = PI * j / 12.0
+		collar.append(o + Vector2(0, -12) + Vector2(cos(a2) * 12.5, sin(a2) * 4.0))
+	draw_polyline(collar, silver, 4.0, true)
+	for side in [-1.0, 1.0]:
+		var col2 = north if side < 0 else south
+		var dark2 = north_dark if side < 0 else south_dark
+		var arm = PackedVector2Array()
+		for j in 9:
+			var k = j / 8.0
+			arm.append(o + Vector2(side * (12.5 + sin(k * PI) * 2.0), -10.0 - k * 19.0))
+		draw_polyline(arm, dark2, 8.0, true)
+		draw_polyline(arm, col2, 5.5, true)
+		var tip = arm[arm.size() - 1]
+		draw_colored_polygon(PackedVector2Array([tip + Vector2(-4.5, 1), tip + Vector2(4.5, 1), tip + Vector2(4.5, -4), tip + Vector2(-4.5, -4)]), silver)
+		var cap_glow = 0.55 + pulse * 0.3 + p * 0.4
+		draw_circle(tip + Vector2(0, -6), 3.2, Color(col2.r, col2.g, col2.b, 0.25 * cap_glow))
+		draw_circle(tip + Vector2(0, -6), 1.8, col2.lightened(0.35))
+
+	# Kafa: gümüş oval kask, mor vizör, yanıp sönen göz parıltıları, küçük tepe
+	draw_ellipse_approx(o + Vector2(0, -20), 8.8, 9.6, silver_dark)
+	draw_ellipse_approx(o + Vector2(-0.6, -20.6), 8.0, 8.8, silver)
+	draw_colored_polygon(PackedVector2Array([o + Vector2(-2, -29), o + Vector2(2, -29), o + Vector2(0, -34.5)]), silver)
+	draw_circle(o + Vector2(0, -30), 1.3, violet.lightened(0.3))
+	draw_colored_polygon(PackedVector2Array([o + Vector2(-7.5, -22.5), o + Vector2(7.5, -22.5), o + Vector2(6, -16.5), o + Vector2(-6, -16.5)]), Color(0.06, 0.04, 0.16))
+	var eye = 0.75 + 0.25 * sin(time * 3.0) + p * 0.2
+	var blink = 1.0 if fmod(time, 3.7) > 0.12 else 0.15
+	draw_line(o + Vector2(-6, -19.5), o + Vector2(6, -19.5), Color(violet.r, violet.g, violet.b, 0.45 * eye), 3.0)
+	draw_circle(o + Vector2(-3.2, -19.6), 1.6 * blink, Color(1, 0.95, 1, eye))
+	draw_circle(o + Vector2(3.2, -19.6), 1.6 * blink, Color(1, 0.95, 1, eye))
+	draw_line(o + Vector2(-5.5, -23.5), o + Vector2(-1, -25.5), Color(1, 1, 1, 0.55), 1.0)
+
+	# Yörüngedeki mıknatıs parçaları: öndekiler
+	for sh in shards:
+		if sh.front:
+			_mini_magnet(sh.pos, 3.6, sh.a * 0.5, 1.0)
+
+	# Zemin gölgesi
+	draw_ellipse_approx(Vector2(0, 27), 12.0 - hover, 2.6, Color(0.1, 0.0, 0.2, 0.22 - p * 0.08))
+
+func _mini_magnet(c: Vector2, s: float, rot: float, alpha: float) -> void:
+	var u = PackedVector2Array()
+	for j in 9:
+		var a = rot + PI * j / 8.0
+		u.append(c + Vector2(cos(a), sin(a)) * s)
+	draw_polyline(u, Color(0.8, 0.82, 0.9, alpha), 2.2, true)
+	var d = Vector2(cos(rot), sin(rot))
+	var back = d.orthogonal() * -s * 0.9
+	draw_line(u[0], u[0] + back, Color(0.95, 0.25, 0.3, alpha), 2.2)
+	draw_line(u[8], u[8] + back, Color(0.3, 0.5, 1.0, alpha), 2.2)
+
+func _ellipse_ring(c: Vector2, rx: float, ry: float, col: Color, w: float) -> void:
+	var pts = PackedVector2Array()
+	for j in 25:
+		var a = TAU * j / 24.0
+		pts.append(c + Vector2(cos(a) * rx, sin(a) * ry))
+	draw_polyline(pts, col, w, true)
 
 func draw_ellipse_approx(center: Vector2, rx: float, ry: float, color: Color):
 	var pts = PackedVector2Array()
