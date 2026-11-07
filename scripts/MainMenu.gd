@@ -85,27 +85,23 @@ func _build():
 	top_bar.append_array(_top_button(ui, Vector2(14, 14), 84.0, "podium", Color(1.0, 0.75, 0.0), "BOARD", func(): _show_leaderboard(ui)))
 	top_bar.append_array(_top_button(ui, Vector2(104, 14), 84.0, "trophy", Color(1.0, 0.5, 0.85), "AWARDS", func(): _show_awards(ui)))
 	top_bar.append_array(_top_button(ui, Vector2(382, 14), 84.0, "portal", Color(0.3, 1.0, 0.5), "LEVELS", func(): _show_level_select(ui)))
-	# Ses: eskiden PLAY'in altında büyük butondu; artık üst çubukta küçük simge
-	var snd_panel = Node2D.new()
-	snd_panel.set_script(_get_hud_button_script("none", Color(0.0, 0.75, 1.0), 52.0))
-	snd_panel.position = Vector2(324, 14)
-	ui.add_child(snd_panel)
+	# Ses: diğer üst butonlarla aynı boyut ve çerçeve (simge + SOUND/MUTED yazısı görselin içinde)
 	var sound_vis = Node2D.new()
 	sound_vis.set_script(load("res://scripts/SoundButtonVisual.gd"))
 	sound_vis.name = "SoundVis"
-	sound_vis.position = Vector2(350, 42)
-	if sound_vis.has_method("setup"):
-		sound_vis.setup(SoundManager.is_on())
+	sound_vis.style = "menu"
+	sound_vis.position = Vector2(292, 14)
+	sound_vis.setup(SoundManager.is_on())
 	ui.add_child(sound_vis)
 	sound_btn = Button.new()
 	sound_btn.name = "SoundBtn"
-	sound_btn.size = Vector2(52, 56)
-	sound_btn.position = Vector2(324, 14)
+	sound_btn.size = Vector2(84, 56)
+	sound_btn.position = Vector2(292, 14)
 	sound_btn.flat = true
 	sound_btn.focus_mode = Control.FOCUS_NONE
 	sound_btn.pressed.connect(_on_sound_toggle)
 	ui.add_child(sound_btn)
-	top_bar.append_array([snd_panel, sound_vis, sound_btn])
+	top_bar.append_array([sound_vis, sound_btn])
 
 	# ── Başlık: Orbitron, iki satır (süs çizgileri kaldırıldı: harflerin üstünden geçiyorlardı) ──
 	title_lbl = Label.new()
@@ -922,15 +918,16 @@ func _show_awards(ui: CanvasLayer):
 	sub.add_theme_font_size_override("font_size", 11)
 	sub.add_theme_color_override("font_color", Color(0.75, 0.75, 0.95, 0.9))
 	overlay.add_child(sub)
-	var scroll = ScrollContainer.new()
+	# Kendi dokunmatik kaydırıcımız (ScrollContainer satırların üstünden sürüklerken takılıyordu)
+	var scroll = TouchScroll.new()
 	scroll.position = Vector2(0, 92 + top)
 	scroll.size = Vector2(480, vh - 92 - top - 66)
-	scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
 	overlay.add_child(scroll)
 	var list = VBoxContainer.new()
 	list.custom_minimum_size = Vector2(480, 0)
+	list.size = Vector2(480, 0)
 	list.add_theme_constant_override("separation", 8)
-	scroll.add_child(list)
+	scroll.content.add_child(list)
 	for a in Progress.AWARDS:
 		var got = Progress.is_unlocked(a["id"])
 		var row = PanelContainer.new()
@@ -980,6 +977,7 @@ func _show_awards(ui: CanvasLayer):
 			date.add_theme_font_size_override("font_size", 11)
 			date.add_theme_color_override("font_color", Color(1.0, 0.75, 0.4, 0.8))
 			h.add_child(date)
+	scroll._ignore_input(list)
 	var close_bg = ColorRect.new()
 	close_bg.size = Vector2(200, 50)
 	close_bg.position = Vector2(140, vh - 58)

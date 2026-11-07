@@ -13,6 +13,12 @@ Bu dosya başka bir bilgisayarda devam edecek Claude oturumu için yazıldı. Ö
 - Masaüstünde (Godot 4.6.3, 480x854 / 480x1040) test edildi: 50 level hatasız açılıyor, akışlar (level geçişi, retry, game over, board, Polaris kilidi) çalışıyor. **Telefonda henüz denenmedi**; sesler sentetik, cihazda dinlenmeli.
 - 1.1.0 (code 4) 2026-11-06'da **bu Mac'ten** derlenip Production'a gönderildi (isim/açıklamalar/7 ekran görüntüsü aynı incelemede). Managed publishing kapalı: onaylanınca kendiliğinden yayına girer. Sonraki yükleme `version/code=5` olmalı.
 
+## 2026-11-07 — 9 yeni bekçi, ses butonu, ödül listesi kaydırma (sonraki sürüme)
+- **Bekçiler (`GuardVisual.gd`):** her 5 level'de yeni tasarım: RUSTY (6-10), VOLT (11-15), TOXIC (16-20), CYCLOPS (21-25), MAGMA (26-30), FROST (31-35), PHANTOM (36-40), TITAN (41-45), OVERLORD (46-50). `GuardVisual.tier_for_level()`; aynı level'de tek sıralı bekçi renk varyantı (`alt`). Çarpışma kutusu değişmedi. Performans: iç animasyon 30 Hz + ekran dışında çizim yenilenmez → FPS eskisiyle aynı.
+- **Yeni bekçi kartı:** kademenin ilk level'inde, ilk karşılaşmada "NEW GUARD" kartı (oyunu durdurmaz). Görülenler `progress.json` → `guards_seen`. GA olayı `Guard:Debut:<ad>`. Yakalanınca alt yazı "VOLT got you!".
+- **Ses butonu (`SoundButtonVisual.gd`):** `style` "menu" (84x56, diğer üst butonlarla aynı çerçeve, SOUND/MUTED yazılı) ve "compact" (oyun içi 44x44). Degrade hoparlör, akan dalgalar, değişimde pop.
+- **AWARDS kaydırma:** `TouchScroll.gd` (kendi dokunmatik kaydırıcımız: 1:1 sürükleme, atalet, uçlarda esneme). ScrollContainer satırların üstünden sürüklerken takılıyordu.
+
 ## 2026-11-06 (3) — Kapanış çökmesi düzeltildi (sonraki sürüme, code 5)
 - Play Console'da 1.0.2'de 2 adet `SIGABRT recursive_mutex::lock` (1'er kullanıcı). Godot 4.6.3 resmi sembolleriyle çözüldü: `Main::cleanup -> GDScriptLanguage::finish -> GDScript::clear -> ... GDScript::UpdatableFuncPtr::~UpdatableFuncPtr`. Yani oyun kapanırken, AdMob eklentisinin static değişkenlerinde kalan AdManager lambda'ları silinirken çöküyor (oyuncu fark etmez ama oranı etkiler).
 - Düzeltme `AdManager._release_plugin_callbacks()` (commit 66d6f2b): 1.1.0 (code 4) incelemedeyken yapıldı, o AAB'de YOK. Bir sonraki sürümle gider.

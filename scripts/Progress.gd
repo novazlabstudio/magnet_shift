@@ -34,6 +34,7 @@ var data: Dictionary = {
 	"awards": {}, "coins_total": 0, "zaps": 0, "clean_clears": 0,
 	"streak": 0, "best_streak": 0, "last_day": "",
 	"review_count": 0, "review_last": 0,
+	"guards_seen": [],
 }
 
 var _layer: CanvasLayer
@@ -107,6 +108,16 @@ func on_hero_unlocked() -> void:
 func _check_coins() -> void:
 	if int(data["coins_total"]) >= 100: unlock("coins100")
 	if int(data["coins_total"]) >= 500: unlock("coins500")
+
+# Yeni bekçi tanıtımı: her kademe yalnızca ilk karşılaşmada tanıtılır. Yeni görüldüyse true döner.
+func mark_guard_seen(tier: int) -> bool:
+	var seen: Array = data["guards_seen"]
+	if tier in seen or float(tier) in seen:
+		return false
+	seen.append(tier)
+	data["guards_seen"] = seen
+	_save()
+	return true
 
 # ── Günlük seri ──────────────────────────────────────────────────────────────
 func _day_offset(day: String, days: int) -> String:

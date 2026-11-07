@@ -615,9 +615,8 @@ func _add_guard(pos: Vector2, patrol: float, guard_index: int = 0):
 	g.set_script(load("res://scripts/Guard.gd"))
 	g.set_meta("patrol_distance", patrol)
 	add_child(g)
-	# Tip ata: çift index=0 (kırmızı), tek index=1 (mavi)
-	if gvis.has_method("set_type"):
-		gvis.set_type(guard_index % 2)
+	# Her 5 level'de bir yeni bekçi; aynı level'de tek sıralılar renk varyantı (klon gibi görünmesin)
+	gvis.set_type(GuardVisual.tier_for_level(level_number), guard_index % 2 == 1)
 
 # ─── UI ──────────────────────────────────────────────────────────────────────
 
@@ -1364,6 +1363,74 @@ func _play_level_intro() -> void:
 		vt.tween_property(vis, "scale", Vector2.ONE, 0.4).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
 		vt.tween_property(vis, "modulate", Color(1, 1, 1, 1), 0.45)
 	SoundManager.play_sfx("beam_in", -6.0)
+	# Yeni bekçi kademesiyle ilk karşılaşma: tanıtım kartı (oyunu durdurmaz, dokunmayı engellemez)
+	if level_number >= GuardVisual.FIRST_GUARD_LEVEL and get_tree().get_nodes_in_group("guard").size() > 0:
+		var tier = GuardVisual.tier_for_level(level_number)
+		if Progress.mark_guard_seen(tier):
+			_show_new_guard_card(tier, vh)
+
+func _show_new_guard_card(tier: int, vh: float) -> void:
+	var ui = get_node_or_null("UILayer")
+	if ui == null:
+		return
+	var info: Dictionary = GuardVisual.TIERS[tier]
+	var col: Color = info["color"]
+	var card = Panel.new()
+	card.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	card.size = Vector2(320, 122)
+	var y = vh * 0.3 + 104
+	card.position = Vector2(500, y)
+	var sb = StyleBoxFlat.new()
+	sb.bg_color = Color(0.03, 0.03, 0.08, 0.92)
+	sb.border_color = Color(col.r, col.g, col.b, 0.9)
+	sb.set_border_width_all(2)
+	sb.border_width_left = 5
+	sb.set_corner_radius_all(14)
+	sb.shadow_color = Color(col.r, col.g, col.b, 0.35)
+	sb.shadow_size = 14
+	card.add_theme_stylebox_override("panel", sb)
+	ui.add_child(card)
+	# Bekçinin büyük, yerinde yürüyen önizlemesi
+	var spot = Node2D.new()
+	spot.position = Vector2(60, 78)
+	card.add_child(spot)
+	var g = Node2D.new()
+	g.set_script(load("res://scripts/GuardVisual.gd"))
+	g.preview = true
+	g.scale = Vector2(1.6, 1.6)
+	spot.add_child(g)
+	g.set_type(tier)
+	var head = Label.new()
+	head.text = "⚠ NEW GUARD"
+	head.position = Vector2(118, 18)
+	head.add_theme_font_override("font", UIFont.title(3))
+	head.add_theme_font_size_override("font_size", 12)
+	head.add_theme_color_override("font_color", col)
+	card.add_child(head)
+	var name_lbl = Label.new()
+	name_lbl.text = info["name"]
+	name_lbl.position = Vector2(116, 36)
+	name_lbl.add_theme_font_override("font", UIFont.title(3))
+	name_lbl.add_theme_font_size_override("font_size", 30 if info["name"].length() <= 6 else (27 if info["name"].length() == 7 else 24))
+	name_lbl.add_theme_color_override("font_color", Color(1, 1, 1))
+	name_lbl.add_theme_color_override("font_shadow_color", Color(col.r, col.g, col.b, 0.7))
+	name_lbl.add_theme_constant_override("shadow_outline_size", 10)
+	card.add_child(name_lbl)
+	var title_lbl = Label.new()
+	title_lbl.text = info["title"]
+	title_lbl.position = Vector2(118, 80)
+	title_lbl.add_theme_font_override("font", UIFont.title(2))
+	title_lbl.add_theme_font_size_override("font_size", 11)
+	title_lbl.add_theme_color_override("font_color", Color(0.75, 0.78, 0.9))
+	card.add_child(title_lbl)
+	var tw = card.create_tween()
+	tw.tween_interval(1.1)
+	tw.tween_callback(func(): SoundManager.play_sfx("portal", -9.0, 0.8))
+	tw.tween_property(card, "position:x", 80.0, 0.45).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
+	tw.tween_interval(2.6)
+	tw.tween_property(card, "position:x", -340.0, 0.35).set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_IN)
+	tw.tween_callback(card.queue_free)
+	AnalyticsManager.design_event("Guard:Debut:%s" % info["name"])
 
 # ─── KAMERA ODAĞI (ölüm ve çıkış anları) ──────────────────────────────────────
 
@@ -1513,7 +1580,10 @@ func _show_result(success: bool, is_new_record: bool = false, stars: int = 0):
 		if success:
 			sub_lbl.text = "💰 %d / %d coins" % [coins_collected, total_coins]
 		else:
-			sub_lbl.text = "better luck next time... (%d ❤️)" % lives
+			if player and player.death_cause == "guard" and level_number >= GuardVisual.FIRST_GUARD_LEVEL:
+				sub_lbl.text = "%s got you! (%d ❤️)" % [GuardVisual.TIERS[GuardVisual.tier_for_level(level_number)]["name"], lives]
+			else:
+				sub_lbl.text = "better luck next time... (%d ❤️)" % lives
 			sub_lbl.add_theme_color_override("font_color", Color(0.7, 0.4, 0.4, 0.8))
 	var total_sub = panel.get_node_or_null("TotalSub")
 	if total_sub:
