@@ -92,18 +92,50 @@ func show_rewarded_ad(on_result: Callable) -> void:
 	# lambda'lara referans değil KOPYA olarak yakalanır; iki ayrı callback
 	# aynı "earned" değerini paylaşamaz. Dictionary reference type olduğu
 	# için paylaşılabiliyor.
-	var state := {"earned": false}
+	# "done": sonuç bu gösterim için yalnızca BİR kez bildirilir.
+	var state := {"earned": false, "done": false}
 	var reward_listener := OnUserEarnedRewardListener.new()
 	reward_listener.on_user_earned_reward = func(_item: RewardedItem) -> void:
-		state["earned"] = true
+		if not state["done"]:
+			state["earned"] = true
 	var content_callbacks := FullScreenContentCallback.new()
 	content_callbacks.on_ad_dismissed_full_screen_content = func() -> void:
-		ad.destroy()
-		_preload_rewarded_ad()
-		on_result.call(state["earned"])
+		_finish_rewarded(ad, state, on_result, state["earned"])
 	content_callbacks.on_ad_failed_to_show_full_screen_content = func(_error: AdError) -> void:
-		ad.destroy()
-		_preload_rewarded_ad()
-		on_result.call(false)
+		_finish_rewarded(ad, state, on_result, false)
 	ad.full_screen_content_callback = content_callbacks
 	ad.show(reward_listener)
+
+# ÖNEMLİ: Eklentide tüm reklamlar tek RewardedAdLoader'dan yüklendiği için aynı uid'yi taşır.
+# Biten reklam nesnesi eklentinin sinyallerine bağlı kalırsa (lambda'daki `ad` yakalaması onu
+# canlı da tutuyordu) SONRAKİ reklam kapanınca eskisinin geri çağrısı da tetikleniyordu:
+# 2. reklamda 1. reklamın ödülü tekrar sayılıyor, kahraman 3 yerine 2 reklamda açılıyordu.
+# Bu yüzden: sonuç tek sefer bildirilir, nesnenin sinyalleri koparılır, döngü kırılır.
+func _finish_rewarded(ad: RewardedAd, state: Dictionary, on_result: Callable, earned: bool) -> void:
+	if state["done"]:
+		return
+	state["done"] = true
+	_detach_rewarded(ad)
+	ad.destroy()
+	_preload_rewarded_ad()
+	on_result.call(earned)
+
+func _detach_rewarded(ad: RewardedAd) -> void:
+	var pl = RewardedAd._plugin
+	if pl == null:
+		return
+	var pairs = [
+		["on_rewarded_ad_clicked", ad._on_rewarded_ad_clicked],
+		["on_rewarded_ad_dismissed_full_screen_content", ad._on_rewarded_ad_dismissed_full_screen_content],
+		["on_rewarded_ad_failed_to_show_full_screen_content", ad._on_rewarded_ad_failed_to_show_full_screen_content],
+		["on_rewarded_ad_impression", ad._on_rewarded_ad_impression],
+		["on_rewarded_ad_showed_full_screen_content", ad._on_rewarded_ad_showed_full_screen_content],
+		["on_rewarded_ad_paid", ad._on_rewarded_ad_paid],
+		["on_rewarded_ad_user_earned_reward", ad._on_rewarded_ad_user_earned_reward],
+	]
+	for pair in pairs:
+		if pl.has_signal(pair[0]) and pl.is_connected(pair[0], pair[1]):
+			pl.disconnect(pair[0], pair[1])
+	# ad -> callback -> lambda -> ad döngüsünü kır (nesne serbest kalsın)
+	ad.full_screen_content_callback = FullScreenContentCallback.new()
+	ad._on_user_earned_reward_listener = OnUserEarnedRewardListener.new()
