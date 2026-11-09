@@ -28,8 +28,8 @@ func clear_active_magnet():
 # Ölüm animasyonunun süresi (PlayerVisual + DeathFX + kamera odağı bununla eşzamanlı).
 # Bitince player_died yayınlanır ve sonuç ekranı açılır.
 const DEATH_TIME := {"laser": 1.2, "guard": 1.05}
-# Kahramana göre "Ahh!" perdesi: 0 Cyborg, 1 Pink, 2 Shadow, 3 Mech, 4 Blaze, 5 Polaris
-const VOICE_PITCH := [1.0, 1.28, 0.86, 0.8, 0.95, 1.12]
+# Kahramana göre "Ahh!" perdesi: 0 Cyborg, 1 Pink, 2 Shadow, 3 Mech, 4 Blaze, 5 Polaris, 6 Ferro
+const VOICE_PITCH := [1.0, 1.28, 0.86, 0.8, 0.95, 1.12, 1.42]
 
 func die(cause: String = ""):
 	# Kapıya çekilirken lazer/bekçi değse de ölmez (iki animasyon çakışmasın)

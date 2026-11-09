@@ -27,7 +27,7 @@ const AWARDS := [
 	{"id": "zap10", "icon": "🔌", "title": "Shock Absorber", "desc": "Get zapped 10 times"},
 	{"id": "streak3", "icon": "🔥", "title": "Regular", "desc": "Play 3 days in a row"},
 	{"id": "streak7", "icon": "📅", "title": "Dedicated", "desc": "Play 7 days in a row"},
-	{"id": "collector", "icon": "🦸", "title": "Collector", "desc": "Unlock Blaze or Polaris"},
+	{"id": "collector", "icon": "🦸", "title": "Collector", "desc": "Unlock an ad-reward hero"},
 ]
 
 var data: Dictionary = {

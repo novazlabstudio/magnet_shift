@@ -13,6 +13,11 @@ Bu dosya başka bir bilgisayarda devam edecek Claude oturumu için yazıldı. Ö
 - Masaüstünde (Godot 4.6.3, 480x854 / 480x1040) test edildi: 50 level hatasız açılıyor, akışlar (level geçişi, retry, game over, board, Polaris kilidi) çalışıyor. **Telefonda henüz denenmedi**; sesler sentetik, cihazda dinlenmeli.
 - 1.1.0 (code 4) 2026-11-06'da **bu Mac'ten** derlenip Production'a gönderildi (isim/açıklamalar/7 ekran görüntüsü aynı incelemede). Managed publishing kapalı: onaylanınca kendiliğinden yayına girer. Sonraki yükleme `version/code=5` olmalı.
 
+## 2026-11-09 — Yeni kahraman FERRO (3 reklamla açılır, sonraki sürüme)
+- İnsansı değil, canlı bir **ferrosıvı damlası**: parlak siyah sıvı gövde, yanardöner kenar, altın gözler. Mıknatısa doğru gerçek ferrosıvı gibi diken çıkarır, hıza göre uzar, yere düşünce yaylanıp damlacık saçar, havada damlar, çekilince ağzı heyecanla açılır, hızla düşerken "o" yapar. Ayrıntı: CLAUDE.md → Kahramanlar.
+- `HeroManager.FERRO_ID = 6`, `user://ferro_ads.dat`, GA `HeroUnlock:Ferro:*`. Menü üstte 4 / altta 3 kart; kilitliyken "NEW" rozeti. "Collector" ödül metni "Unlock an ad-reward hero".
+- Test: menü, kilit penceresi, 3 reklam (stub) → açılıp seçiliyor; oyunda L7/L46; L46 FPS Cyborg ile aynı (52–54).
+
 ## 2026-11-07 — 9 yeni bekçi, ses butonu, ödül listesi kaydırma (sonraki sürüme)
 - **Bekçiler (`GuardVisual.gd`):** her 5 level'de yeni tasarım: RUSTY (6-10), VOLT (11-15), TOXIC (16-20), CYCLOPS (21-25), MAGMA (26-30), FROST (31-35), PHANTOM (36-40), TITAN (41-45), OVERLORD (46-50). `GuardVisual.tier_for_level()`; aynı level'de tek sıralı bekçi renk varyantı (`alt`). Çarpışma kutusu değişmedi. Performans: iç animasyon 30 Hz + ekran dışında çizim yenilenmez → FPS eskisiyle aynı.
 - **Yeni bekçi kartı:** kademenin ilk level'inde, ilk karşılaşmada "NEW GUARD" kartı (oyunu durdurmaz). Görülenler `progress.json` → `guards_seen`. GA olayı `Guard:Debut:<ad>`. Yakalanınca alt yazı "VOLT got you!".

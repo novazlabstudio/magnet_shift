@@ -4,7 +4,7 @@ var time: float = 0.0
 var is_dead: bool = false
 var is_pulled: bool = false
 var pull_intensity: float = 0.0
-var hero_id: int = 0  # 0=Cyborg, 1=Pink, 2=Shadow, 3=Mech, 4=Blaze, 5=Polaris
+var hero_id: int = 0  # 0=Cyborg, 1=Pink, 2=Shadow, 3=Mech, 4=Blaze, 5=Polaris, 6=Ferro
 # Menü önizlemesi için: >= 0 ise seçili kahraman yerine bu çizilir
 var preview_hero: int = -1
 
@@ -17,7 +17,7 @@ var dying: bool = false
 var death_t: float = 0.0
 var death_cause: String = ""
 const HERO_ACCENTS = [Color(0.0, 0.83, 1.0), Color(1.0, 0.4, 0.7), Color(0.6, 0.1, 0.9),
-	Color(0.5, 1.0, 0.1), Color(1.0, 0.45, 0.05), Color(0.72, 0.42, 1.0)]
+	Color(0.5, 1.0, 0.1), Color(1.0, 0.45, 0.05), Color(0.72, 0.42, 1.0), Color(1.0, 0.78, 0.2)]
 
 func accent_color() -> Color:
 	return HERO_ACCENTS[clamp(hero_id, 0, HERO_ACCENTS.size() - 1)]
@@ -40,6 +40,8 @@ func _process(delta):
 		var has_magnet = player.active_magnet != null
 		pull_intensity = move_toward(pull_intensity, 1.0 if has_magnet else 0.0, delta * 3.0)
 		is_pulled = has_magnet
+	if hero_id == 6:
+		_ferro_update(delta)
 	queue_redraw()
 
 func set_dead(dead: bool):
@@ -106,6 +108,7 @@ func _draw_hero():
 		3: _draw_mech()
 		4: _draw_blaze()
 		5: _draw_polaris()
+		6: _draw_ferro()
 		_: _draw_cyborg()
 
 # ── CYBORG (orijinal mavi/gri) ────────────────────────────────────────────
@@ -789,6 +792,467 @@ func _draw_polaris():
 
 	# Zemin gölgesi
 	draw_ellipse_approx(Vector2(0, 27), 12.0 - hover, 2.6, Color(0.1, 0.0, 0.2, 0.22 - p * 0.08))
+
+# ── FERRO (canlı bir ferrosıvı damlası) ──────────────────────────────────────
+# Diğer kahramanlar zırhlı insansı; Ferro ise malzemenin kendisi: parlak siyah, sıvı bir damla.
+#  - Mıknatısa doğru gerçek ferrosıvı gibi sivri dikenler çıkarır (Rosensweig dikenleri),
+#    boşta tepesinde nefes alan küçük bir "taç" diken kalır.
+#  - Hızına göre akış yönünde uzar, yere düşünce yaylanıp ezilir, sıçrantı damlacıkları saçar;
+#    havadayken altından damla sızar, çekilirken diken uçlarından mıknatısa damlacıklar uçar.
+#  - Kenarda petrol yağı gibi yanardöner parıltı, üstte stüdyo pencere yansıması, altta sıcak
+#    altın zemin yansıması; altın irisli kocaman gözler mıknatısa bakar, çekilince ağzı açılır.
+# Gövde kendi üçgen yelpazesiyle çizilir (merkezden kenara degrade); draw_set_transform yok.
+var _fx_drops: Array = []
+var _fx_prev_v := Vector2.ZERO
+var _fx_vel := Vector2.ZERO
+var _fx_dir: float = -PI / 2.0
+var _fx_pull: float = 0.0
+var _fx_ground: float = 1.0
+var _fx_splat_t: float = 9.0
+var _fx_splat_k: float = 0.0
+var _fx_jiggle: float = 0.0
+var _fx_look := Vector2.ZERO
+var _fx_spawn: float = 0.0
+var _fx_prev_cyc: float = 0.0
+var _fx_M := Transform2D.IDENTITY
+var _fx_sx: float = 1.0
+var _fx_sy: float = 1.0
+const FX_C := Vector2(0, 3)
+const FX_GROUND := 22.0
+const FX_GOLD := Color(1.0, 0.78, 0.2)
+const FX_LIGHT := Vector2(-0.6, -0.8)
+const FX_VITRIN_DIRS := [-0.3, -0.72, -0.12, -0.88, -0.5]
+
+func _ferro_update(delta: float) -> void:
+	var pl = get_parent()
+	var in_game = pl is RigidBody2D
+	var v = pl.linear_velocity if in_game else Vector2.ZERO
+	_fx_vel = v
+	var pull = pull_intensity
+	var target = _fx_dir
+	if pl and "active_magnet" in pl and pl.active_magnet and is_instance_valid(pl.active_magnet):
+		target = (pl.active_magnet.global_position - pl.global_position).angle()
+	elif not in_game:
+		# Vitrin (menü kartı / kilit penceresi): ara sıra görünmez bir mıknatıs yaklaşmış gibi dikenlenir
+		var cyc = fposmod(time, 4.6) / 4.6
+		target = FX_VITRIN_DIRS[int(time / 4.6) % FX_VITRIN_DIRS.size()] * PI
+		pull = smoothstep(0.02, 0.12, cyc) * (1.0 - smoothstep(0.42, 0.58, cyc))
+		if _fx_prev_cyc < 0.6 and cyc >= 0.6:
+			_ferro_splash(0.7)
+		_fx_prev_cyc = cyc
+	_fx_pull = pull
+	_fx_dir = lerp_angle(_fx_dir, target, 1.0 - exp(-10.0 * delta))
+
+	# Bakış: mıknatısa, yoksa gidiş yönüne, o da yoksa etrafa
+	var look_t: Vector2
+	if pull > 0.1:
+		look_t = Vector2.from_angle(_fx_dir)
+	elif v.length() > 140.0:
+		look_t = v.normalized()
+	else:
+		look_t = Vector2(sin(time * 0.7) * 0.8, sin(time * 0.43 + 1.0) * 0.35)
+	_fx_look = _fx_look.lerp(look_t, 1.0 - exp(-7.0 * delta))
+
+	var on_ground = (not in_game) or (abs(v.y) < 30.0 and pull < 0.5)
+	_fx_ground = move_toward(_fx_ground, 1.0 if on_ground else 0.0, delta * 6.0)
+
+	if in_game:
+		var dv = _fx_prev_v - v
+		if dv.length() > 260.0:
+			_fx_jiggle = max(_fx_jiggle, clamp(dv.length() / 700.0, 0.0, 1.0))
+		if _fx_prev_v.y > 220.0 and v.y < 80.0:
+			_ferro_splash(clamp(_fx_prev_v.y / 600.0, 0.4, 1.0))
+		# havada, çekilmiyorken altından damla sızar
+		if _fx_ground < 0.3 and pull < 0.2 and randf() < delta * 1.4:
+			_fx_drops.append({"p": Vector2(randf_range(-4, 4), 20.0), "v": Vector2(0, 40), "r": randf_range(1.3, 2.0), "life": 0.7, "max": 0.7, "g": true})
+	_fx_prev_v = v
+	_fx_splat_t += delta
+	_fx_jiggle *= exp(-3.0 * delta)
+
+	# Çekilirken diken uçlarından mıknatısa damlacıklar kopar
+	_fx_spawn += delta * pull * 9.0
+	while _fx_spawn >= 1.0:
+		_fx_spawn -= 1.0
+		var sd = _fx_spike_dir()
+		var a = sd + randf_range(-0.55, 0.55)
+		_fx_drops.append({"p": FX_C + Vector2.from_angle(a) * randf_range(18.0, 24.0),
+			"v": Vector2.from_angle(sd) * randf_range(55.0, 100.0) + Vector2.from_angle(a) * 15.0,
+			"r": randf_range(0.9, 1.7), "life": 0.55, "max": 0.55, "g": false})
+	var i = _fx_drops.size() - 1
+	while i >= 0:
+		var d = _fx_drops[i]
+		d.life -= delta
+		if d.life <= 0.0:
+			_fx_drops.remove_at(i)
+		else:
+			if d.g:
+				d.v.y += 420.0 * delta
+			d.p += d.v * delta
+		i -= 1
+	while _fx_drops.size() > 26:
+		_fx_drops.pop_front()
+
+func _ferro_splash(k: float) -> void:
+	_fx_splat_t = 0.0
+	_fx_splat_k = k
+	_fx_jiggle = max(_fx_jiggle, k * 0.8)
+	for n in 7:
+		var side = -1.0 if n % 2 == 0 else 1.0
+		_fx_drops.append({"p": Vector2(side * randf_range(5.0, 13.0), 19.0),
+			"v": Vector2(side * randf_range(35.0, 110.0), -randf_range(70.0, 170.0) * k),
+			"r": randf_range(1.1, 2.2), "life": 0.5, "max": 0.5, "g": true})
+
+func _fx_spike_dir() -> float:
+	return lerp_angle(-PI / 2.0, _fx_dir, clamp(_fx_pull * 1.4, 0.0, 1.0))
+
+func _fx_map(p: Vector2) -> Vector2:
+	var q = FX_C + _fx_M.basis_xform(p - FX_C)
+	var g = Vector2(0, FX_GROUND)
+	return g + Vector2((q.x - g.x) * _fx_sx, (q.y - g.y) * _fx_sy)
+
+# d yönünde a kat, dikinde b kat ölçek
+func _fx_stretch(d: Vector2, a: float, b: float) -> Transform2D:
+	var n = d.orthogonal()
+	return Transform2D(d * d.x * a + n * n.x * b, d * d.y * a + n * n.y * b, Vector2.ZERO)
+
+# Merkezden kenara üçgen yelpaze (yıldız biçimli şekiller için güvenli, üçgenleme hatası olmaz)
+func _fx_fan(center: Vector2, ccol: Color, pts: PackedVector2Array, cols: PackedColorArray) -> void:
+	var n = pts.size()
+	var all_p = PackedVector2Array([center])
+	all_p.append_array(pts)
+	var all_c = PackedColorArray([ccol])
+	all_c.append_array(cols)
+	var idx = PackedInt32Array()
+	for i in n:
+		idx.append_array([0, 1 + i, 1 + (i + 1) % n])
+	RenderingServer.canvas_item_add_triangle_array(get_canvas_item(), idx, all_p, all_c)
+
+# İki eğri arasında şerit (hilal yansımalar için)
+func _fx_strip(a: PackedVector2Array, b: PackedVector2Array, ca: PackedColorArray, cb: PackedColorArray) -> void:
+	var n = a.size()
+	var all_p = PackedVector2Array(a)
+	all_p.append_array(b)
+	var all_c = PackedColorArray(ca)
+	all_c.append_array(cb)
+	var idx = PackedInt32Array()
+	for i in n - 1:
+		idx.append_array([i, i + 1, n + i, i + 1, n + i + 1, n + i])
+	RenderingServer.canvas_item_add_triangle_array(get_canvas_item(), idx, all_p, all_c)
+
+func _fx_iri(a: float, alpha: float) -> Color:
+	# petrol yağı yanardönerliği: altın -> camgöbeği -> mor arasında kayar
+	var h = 0.5 + 0.42 * sin(a * 1.0 + time * 0.6)
+	var c = Color.from_hsv(fposmod(h, 1.0), 0.5, 1.0)
+	c.a = alpha
+	return c
+
+func _fx_base_r(a: float) -> float:
+	var rx = 16.5
+	var ry = 17.0 if sin(a) < 0.0 else lerp(17.5, 20.5, _fx_ground)
+	var c = cos(a) / rx
+	var s = sin(a) / ry
+	return 1.0 / sqrt(c * c + s * s)
+
+# Konturun yarıçapı: elips + dalgalanma + diken katkısı
+func _fx_r(a: float, spikes: Array) -> float:
+	var jig = _fx_jiggle
+	var r = _fx_base_r(a)
+	r *= 1.0 + (0.03 + 0.08 * jig) * sin(3.0 * a + time * 2.6) + (0.02 + 0.05 * jig) * sin(5.0 * a - time * 3.4 + 1.3) + 0.012 * sin(7.0 * a + time * 5.0)
+	for spk in spikes:
+		var x = abs(angle_difference(a, spk.a)) / spk.w
+		if x < 1.0:
+			r += spk.l * pow(1.0 - x, 1.7)
+	return r
+
+func _draw_ferro():
+	var p = _fx_pull
+	var gold = FX_GOLD
+	# ── Biçim dönüşümü: hız yönünde uzama, mıknatısa doğru uzama, yaylanma, nefes ──
+	_fx_M = Transform2D.IDENTITY
+	var sp = _fx_vel.length()
+	if sp > 1.0:
+		var s = clamp(sp / 1100.0, 0.0, 0.22)
+		_fx_M = _fx_stretch(_fx_vel / sp, 1.0 + s, 1.0 - s * 0.45)
+	var sd = _fx_spike_dir()
+	if p > 0.01:
+		_fx_M = _fx_stretch(Vector2.from_angle(sd), 1.0 + 0.09 * p, 1.0 - 0.04 * p) * _fx_M
+	var q = _fx_splat_t
+	var k = _fx_splat_k * exp(-q * 5.5) * cos(q * 17.0) * 0.3
+	var breath = sin(time * 2.3) * _fx_ground
+	_fx_sy = (1.0 - k) * (1.0 + 0.022 * breath)
+	_fx_sx = (1.0 + k * 0.75) * (1.0 - 0.016 * breath)
+	var cm = _fx_map(FX_C)
+
+	# ── Kontur: elips + dalgalanma + dikenler ──
+	var spikes = []
+	var idle_l = [0.0, 3.2, 5.0, 6.8, 5.0, 3.2, 0.0]
+	var pull_l = [6.0, 10.0, 12.5, 14.5, 12.5, 10.0, 6.0]
+	for j in 7:
+		var len_k = lerp(idle_l[j], pull_l[j], p) * (0.86 + 0.14 * sin(time * (5.0 + p * 7.0) + j * 1.9))
+		if len_k > 0.3:
+			spikes.append({"a": wrapf(sd + (j - 3) * lerp(0.36, 0.31, p), -PI, PI), "l": len_k, "w": lerp(0.2, 0.15, p)})
+	var angs = []
+	var n_seg = 84
+	for i in n_seg:
+		angs.append(-PI + TAU * i / n_seg)
+	for spk in spikes:
+		angs.append(spk.a)
+	angs.sort()
+	var pts = PackedVector2Array()
+	var cols = PackedColorArray()
+	var rim = PackedColorArray()
+	var glow_pts = PackedVector2Array()
+	var glow_cols = PackedColorArray()
+	var max_y = FX_GROUND + (1.0 - _fx_ground) * 30.0
+	for a in angs:
+		var r = _fx_r(a, spikes)
+		var tipness = 0.0
+		var near = 0.0
+		for spk in spikes:
+			var x = abs(angle_difference(a, spk.a)) / spk.w
+			tipness = max(tipness, 1.0 - x)
+			near = max(near, 1.0 - x / 1.7)
+		var pt = _fx_map(FX_C + Vector2(cos(a), sin(a)) * r)
+		pt.y = min(pt.y, max_y)
+		pts.append(pt)
+		var nrm = Vector2(cos(a), sin(a))
+		var lit = clamp(nrm.dot(FX_LIGHT), 0.0, 1.0)
+		var c = Color(0.015, 0.016, 0.03).lerp(Color(0.24, 0.26, 0.34), lit * 0.85)
+		if nrm.y > 0.0:
+			c = c.lerp(Color(0.36, 0.27, 0.07), nrm.y * nrm.y * 0.55)
+		c = c.lerp(Color(0.02, 0.02, 0.035), tipness * 0.9)
+		cols.append(c)
+		rim.append(_fx_iri(a, (0.5 + 0.45 * max(lit, nrm.y * 0.8)) * (1.0 - smoothstep(0.0, 0.45, near))))
+		glow_pts.append(cm + (pt - cm) * 1.3)
+		glow_cols.append(Color(gold.r, gold.g, gold.b, 0.0))
+
+	# ── Zemin gölgesi ──
+	draw_ellipse_approx(Vector2(0, 24), 14.0 + k * 10.0, 2.6, Color(0.05, 0.03, 0.0, 0.32 * (0.35 + 0.65 * _fx_ground)))
+
+	# ── Aura + siluet parıltısı (koyu arka planda kaybolmasın) ──
+	_fx_fan(cm, Color(gold.r, gold.g, gold.b, 0.26 + 0.22 * p), glow_pts, glow_cols)
+
+	# ── Alan çizgileri: mıknatısa doğru akan demir tozu ──
+	if p > 0.05:
+		var dv = Vector2.from_angle(sd)
+		var end = cm + dv * 62.0
+		for j in [-1, 0, 1]:
+			var st = cm + Vector2.from_angle(sd + j * 0.55) * 21.0
+			var ctl = cm + Vector2.from_angle(sd + j * 0.42) * 44.0
+			var curve = PackedVector2Array()
+			for m in 9:
+				var u = m / 8.0
+				curve.append(st.lerp(ctl, u).lerp(ctl.lerp(end, u), u))
+			draw_polyline(curve, Color(gold.r, gold.g, gold.b, 0.1 * p), 0.8, true)
+			for m in 4:
+				var u2 = fposmod(time * 1.5 + m / 4.0 + j * 0.13, 1.0)
+				var a1 = st.lerp(ctl, u2).lerp(ctl.lerp(end, u2), u2)
+				var u3 = min(u2 + 0.035, 1.0)
+				var a2 = st.lerp(ctl, u3).lerp(ctl.lerp(end, u3), u3)
+				draw_line(a1, a2, Color(1.0, 0.88, 0.5, sin(PI * u2) * 0.75 * p), 1.0, true)
+
+	# ── Gövde: merkezden kenara koyu-parlak degrade ──
+	_fx_fan(cm, Color(0.045, 0.048, 0.07), pts, cols)
+	# yanardöner kenar
+	var rim_pts = PackedVector2Array(pts)
+	rim_pts.append(pts[0])
+	var rim_cols = PackedColorArray(rim)
+	rim_cols.append(rim[0])
+	draw_polyline_colors(rim_pts, rim_cols, 1.7, true)
+
+	# ── Yansımalar ──
+	# Sol üst büyük hilal (ana ışık)
+	var outer = PackedVector2Array()
+	var inner = PackedVector2Array()
+	var co = PackedColorArray()
+	var ci = PackedColorArray()
+	for i in 13:
+		var u = i / 12.0
+		var a = lerp(-2.75, -1.62, u)
+		var br = _fx_base_r(a)
+		var th = sin(PI * u)
+		outer.append(_fx_map(FX_C + Vector2.from_angle(a) * br * 0.86))
+		inner.append(_fx_map(FX_C + Vector2.from_angle(a) * br * (0.86 - 0.16 * th)))
+		co.append(Color(1, 1, 1, 0.78 * sqrt(th)))
+		ci.append(Color(0.75, 0.8, 1.0, 0.12 * th))
+	_fx_strip(outer, inner, co, ci)
+	# Sağ alt sıcak altın hilal (zemin/ışık sekmesi)
+	outer = PackedVector2Array(); inner = PackedVector2Array(); co = PackedColorArray(); ci = PackedColorArray()
+	for i in 13:
+		var u = i / 12.0
+		var a = lerp(0.15, 1.35, u)
+		var br = _fx_base_r(a)
+		var th = sin(PI * u)
+		outer.append(_fx_map(FX_C + Vector2.from_angle(a) * br * 0.9))
+		inner.append(_fx_map(FX_C + Vector2.from_angle(a) * br * (0.9 - 0.1 * th)))
+		co.append(Color(1.0, 0.82, 0.35, 0.55 * th))
+		ci.append(Color(1.0, 0.7, 0.2, 0.05 * th))
+	_fx_strip(outer, inner, co, ci)
+	# Sağ üstte ince ikinci parlaklık çizgisi + keskin parıltı noktası
+	var gloss = PackedVector2Array()
+	for i in 7:
+		var a = lerp(-1.25, -0.55, i / 6.0)
+		gloss.append(_fx_map(FX_C + Vector2.from_angle(a) * _fx_base_r(a) * 0.8))
+	draw_polyline(gloss, Color(1, 1, 1, 0.32), 1.1, true)
+	var glint = _fx_map(FX_C + Vector2(-9.0, -8.5))
+	draw_circle(glint, 2.6, Color(1, 1, 1, 0.22))
+	draw_circle(glint, 1.3, Color(1, 1, 1, 0.95))
+	var gph = fposmod(time, 3.1)
+	if gph < 0.45:
+		var gl = sin(PI * gph / 0.45) * 5.5
+		var ga = sin(PI * gph / 0.45)
+		draw_line(glint + Vector2(-gl, 0), glint + Vector2(gl, 0), Color(1, 1, 1, 0.85 * ga), 1.0, true)
+		draw_line(glint + Vector2(0, -gl), glint + Vector2(0, gl), Color(1, 1, 1, 0.85 * ga), 1.0, true)
+
+	# Diken kenarları: ince gümüş çizgi (koyu zeminde de siluet okunsun; uçta birleşme yok)
+	for spk in spikes:
+		if spk.l < 1.5:
+			continue
+		for side_k in [-1.0, 1.0]:
+			var fl = PackedVector2Array()
+			var fc = PackedColorArray()
+			for m in 6:
+				var u = m / 5.0
+				var a = spk.a + side_k * spk.w * (1.0 - u) * 1.05
+				var fpt = _fx_map(FX_C + Vector2.from_angle(a) * _fx_r(a, spikes))
+				fpt.y = min(fpt.y, max_y)
+				fl.append(fpt)
+				var lit_k = clamp(Vector2.from_angle(a).dot(FX_LIGHT), 0.0, 1.0)
+				fc.append(Color(0.78, 0.82, 0.95, (0.25 + 0.35 * lit_k) * u))
+			draw_polyline_colors(fl, fc, 0.8, true)
+	# Diken uçlarında ışık çizgileri
+	for spk in spikes:
+		if spk.l < 2.0:
+			continue
+		var tip = _fx_map(FX_C + Vector2.from_angle(spk.a) * (_fx_base_r(spk.a) + spk.l))
+		var base = _fx_map(FX_C + Vector2.from_angle(spk.a) * (_fx_base_r(spk.a) * 0.92))
+		var ax = (tip - base).normalized()
+		var side = ax.orthogonal()
+		if side.dot(FX_LIGHT) < 0.0:
+			side = -side
+		var la = clamp(0.2 + spk.l / 16.0, 0.0, 0.8)
+		draw_line(tip - ax * 1.4 + side * 0.35, base + side * 1.4, Color(1, 1, 1, la * 0.6), 0.7, true)
+		draw_circle(tip - ax * 1.0, 0.6, Color(1, 1, 1, la))
+
+	# Mıknatısa bakan yüzde petek kabarcıklar (alan güçlendikçe belirginleşir)
+	if p > 0.1:
+		for j in 5:
+			var a = sd + (j - 2) * 0.32
+			var bp = _fx_map(FX_C + Vector2.from_angle(a) * _fx_base_r(a) * (0.66 + 0.08 * (j % 2)))
+			draw_arc(bp, 1.8, PI * 1.05, PI * 1.75, 6, Color(0.85, 0.88, 1.0, 0.4 * p), 1.0, true)
+
+	# ── Yüz ──
+	_ferro_face(p)
+
+	# ── Damlacıklar ──
+	for d in _fx_drops:
+		var life_k = clamp(d.life / d.max, 0.0, 1.0)
+		var dr = d.r * (0.45 + 0.55 * life_k)
+		var vel: Vector2 = d.v
+		var back = -vel.normalized() if vel.length() > 1.0 else Vector2.DOWN
+		var tail = min(vel.length() / 60.0, 2.2) * dr
+		var poly = PackedVector2Array()
+		var ba = back.angle()
+		for m in 9:
+			var a = ba + 0.95 + (TAU - 1.9) * m / 8.0
+			poly.append(d.p + Vector2.from_angle(a) * dr)
+		poly.append(d.p + back * (dr + tail))
+		draw_colored_polygon(poly, Color(0.03, 0.03, 0.05, life_k))
+		draw_arc(d.p, dr, 0.0, TAU, 10, _fx_iri(d.p.x * 0.2, 0.6 * life_k), 0.8, true)
+		draw_circle(d.p + Vector2(-0.35, -0.35) * dr, dr * 0.32, Color(1, 1, 1, 0.85 * life_k))
+
+func _ferro_face(p: float) -> void:
+	var gold = FX_GOLD
+	var excite = 1.0 + 0.1 * p
+	# yanaklar: yumuşak pembe allık
+	for sx in [-1.0, 1.0]:
+		var ch = _fx_map(FX_C + Vector2(sx * 10.4, 4.6))
+		_fx_ellipse(ch, 2.6, 1.5, Color(1.0, 0.45, 0.55, 0.22))
+		_fx_ellipse(ch, 1.5, 0.8, Color(1.0, 0.6, 0.68, 0.3))
+	# göz kırpma: 3.4 sn'de bir, arada bir çift kırpma
+	var bt = fposmod(time, 3.4)
+	var blink = 1.0
+	if bt < 0.14:
+		blink = 1.0 - sin(PI * bt / 0.14)
+	elif int(time / 3.4) % 3 == 1 and bt > 0.24 and bt < 0.38:
+		blink = 1.0 - sin(PI * (bt - 0.24) / 0.14)
+	var look = _fx_look
+	for sx in [-1.0, 1.0]:
+		var e = _fx_map(FX_C + Vector2(sx * 6.2, -2.5))
+		var rx = 4.5 * excite
+		var ry = 5.4 * excite
+		var ry_b = ry * max(blink, 0.12)
+		if blink < 0.45:
+			# kapalı göz: mutlu kavis
+			var arc = PackedVector2Array()
+			for m in 7:
+				var u = m / 6.0
+				arc.append(e + Vector2((u - 0.5) * rx * 2.0, -sin(PI * u) * 1.6 + 0.8))
+			draw_polyline(arc, Color(0.78, 0.8, 0.9, 0.95), 1.4, true)
+			continue
+		# göz yuvası (sıvının içine gömülü gibi)
+		_fx_ellipse(e + Vector2(0, 0.4), rx + 0.9, ry_b + 0.9, Color(0.0, 0.0, 0.0, 0.7))
+		# beyaz: üstten alta hafif mavi gölgeli
+		var sc = PackedVector2Array()
+		var scol = PackedColorArray()
+		for m in 16:
+			var a = TAU * m / 16.0
+			var pt = e + Vector2(cos(a) * rx, sin(a) * ry_b)
+			sc.append(pt)
+			scol.append(Color(1.0, 1.0, 1.0).lerp(Color(0.72, 0.76, 0.9), clamp((sin(a) + 0.3) * 0.75, 0.0, 1.0)))
+		draw_polygon(sc, scol)
+		# altın iris + bebek + ışıltılar
+		var ir = 3.15 * excite * min(1.0, blink * 1.3)
+		var ic = e + Vector2(look.x * 1.5, (look.y * 1.4 + 0.3) * blink)
+		draw_circle(ic, ir, Color(0.62, 0.33, 0.02))
+		draw_circle(ic + Vector2(0, 0.45), ir * 0.82, gold)
+		draw_circle(ic + Vector2(0, 0.9), ir * 0.45, Color(1.0, 0.93, 0.6, 0.8))
+		for m in 8:
+			var a = TAU * m / 8.0 + 0.2
+			draw_line(ic + Vector2.from_angle(a) * ir * 0.45, ic + Vector2.from_angle(a) * ir * 0.85, Color(0.7, 0.4, 0.05, 0.55), 0.6)
+		draw_circle(ic, 1.55 * (1.0 - 0.25 * p) * min(1.0, blink * 1.3), Color(0.02, 0.01, 0.0))
+		draw_circle(ic + Vector2(-1.2, -1.3), 1.15, Color(1, 1, 1, 0.95))
+		draw_circle(ic + Vector2(1.1, 1.0), 0.55, Color(1, 1, 1, 0.8))
+	# ağız: boşta gülümseme, çekilince heyecanla açılır, hızla düşerken "o"
+	var mc = _fx_map(FX_C + Vector2(0, 6.8))
+	var open = smoothstep(0.3, 0.75, p)
+	var scared = _fx_vel.y > 450.0 and p < 0.3
+	if scared:
+		_fx_ellipse(mc + Vector2(0, 0.6), 1.9, 2.5, Color(0.2, 0.02, 0.06))
+		var o_ring = PackedVector2Array()
+		for m in 13:
+			var a = TAU * m / 12.0
+			o_ring.append(mc + Vector2(0, 0.6) + Vector2(cos(a) * 1.9, sin(a) * 2.5))
+		draw_polyline(o_ring, Color(0.7, 0.72, 0.82, 0.8), 0.8, true)
+	elif open > 0.05:
+		var w = 3.6
+		var h = 4.4 * open
+		var m_pts = PackedVector2Array()
+		for m in 11:
+			var u = m / 10.0
+			m_pts.append(mc + Vector2(lerp(w, -w, u), -0.4 + sin(PI * u) * h))
+		draw_colored_polygon(m_pts, Color(0.2, 0.02, 0.06))
+		_fx_ellipse(mc + Vector2(0, -0.4 + h * 0.68), 2.0 * open + 0.4, 1.1 * open + 0.2, Color(1.0, 0.45, 0.48))
+		draw_line(mc + Vector2(-2.6, 0.2), mc + Vector2(2.6, 0.2), Color(1, 1, 1, 0.9 * open), 1.1)
+		var lip = PackedVector2Array(m_pts)
+		lip.append(m_pts[0])
+		draw_polyline(lip, Color(0.72, 0.74, 0.84, 0.75), 0.8, true)
+	else:
+		var sm = PackedVector2Array()
+		for m in 9:
+			var u = m / 8.0
+			var x = (u - 0.5) * 6.4
+			sm.append(mc + Vector2(x, 1.5 * (1.0 - pow(x / 3.2, 2.0))))
+		draw_polyline(sm, Color(0.7, 0.72, 0.82, 0.9), 1.3, true)
+		draw_circle(sm[0] + Vector2(-0.4, -0.3), 0.55, Color(0.7, 0.72, 0.82, 0.7))
+		draw_circle(sm[8] + Vector2(0.4, -0.3), 0.55, Color(0.7, 0.72, 0.82, 0.7))
+
+func _fx_ellipse(c: Vector2, rx: float, ry: float, col: Color) -> void:
+	var pts = PackedVector2Array()
+	for m in 16:
+		var a = TAU * m / 16.0
+		pts.append(c + Vector2(cos(a) * rx, sin(a) * ry))
+	draw_colored_polygon(pts, col)
 
 func _mini_magnet(c: Vector2, s: float, rot: float, alpha: float) -> void:
 	var u = PackedVector2Array()

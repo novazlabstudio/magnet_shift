@@ -1,16 +1,18 @@
 extends Node
 
-var selected_hero: int = 0  # 0=Cyborg, 1=Pink Girl, 2=Shadow, 3=Mech, 4=Blaze, 5=Polaris
-const HERO_COUNT := 6
-const HERO_NAMES := ["Cyborg", "Pink", "Shadow", "Mech", "Blaze", "Polaris"]
+var selected_hero: int = 0  # 0=Cyborg, 1=Pink Girl, 2=Shadow, 3=Mech, 4=Blaze, 5=Polaris, 6=Ferro
+const HERO_COUNT := 7
+const HERO_NAMES := ["Cyborg", "Pink", "Shadow", "Mech", "Blaze", "Polaris", "Ferro"]
 
 # Reklamla açılan kahramanlar: seviye ile değil, ödüllü reklam izlenerek açılır.
 # İlerleme her reklamda ayrı dosyaya kaydedilir (blaze_ads.dat eski sürümle aynı; mevcut ilerleme korunur).
 const BLAZE_ID := 4
 const POLARIS_ID := 5
+const FERRO_ID := 6
 const AD_HEROES := {
 	BLAZE_ID: {"file": "user://blaze_ads.dat", "required": 3, "name": "BLAZE"},
 	POLARIS_ID: {"file": "user://polaris_ads.dat", "required": 3, "name": "POLARIS"},
+	FERRO_ID: {"file": "user://ferro_ads.dat", "required": 3, "name": "FERRO"},
 }
 const BLAZE_ADS_REQUIRED := 3
 var ad_progress: Dictionary = {}

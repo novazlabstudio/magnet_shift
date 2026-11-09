@@ -166,19 +166,20 @@ func _build():
 	ui.add_child(hero_title)
 
 	# ── Hero kartlar ──
-	var hero_names = ["CYBORG", "PINK", "SHADOW", "MECH", "BLAZE", "POLARIS"]
-	var hero_colors = [Color(0.0, 0.83, 1.0), Color(1.0, 0.4, 0.7), Color(0.6, 0.1, 0.9), Color(0.5, 1.0, 0.1), Color(1.0, 0.45, 0.05), Color(0.72, 0.42, 1.0)]
-	# BLAZE ve POLARIS level ile değil, 3'er ödüllü reklamla açılır
+	var hero_names = ["CYBORG", "PINK", "SHADOW", "MECH", "BLAZE", "POLARIS", "FERRO"]
+	var hero_colors = [Color(0.0, 0.83, 1.0), Color(1.0, 0.4, 0.7), Color(0.6, 0.1, 0.9), Color(0.5, 1.0, 0.1), Color(1.0, 0.45, 0.05), Color(0.72, 0.42, 1.0), Color(1.0, 0.78, 0.2)]
+	# BLAZE, POLARIS ve FERRO level ile değil, 3'er ödüllü reklamla açılır
 	var hero_locked = [false, false, max_lvl < 5, max_lvl < 10,
-		not HeroManager.is_ad_hero_unlocked(HeroManager.BLAZE_ID), not HeroManager.is_ad_hero_unlocked(HeroManager.POLARIS_ID)]
+		not HeroManager.is_ad_hero_unlocked(HeroManager.BLAZE_ID), not HeroManager.is_ad_hero_unlocked(HeroManager.POLARIS_ID),
+		not HeroManager.is_ad_hero_unlocked(HeroManager.FERRO_ID)]
 	var hero_count = hero_names.size()
-	# İki sıra: üstte 4 kahraman, altta reklamla açılan 2 kahraman ortalı
+	# İki sıra: üstte 4 kahraman, altta reklamla açılan 3 kahraman ortalı
 	var hero_y = 414.0
 	var card_w = 104.0
 	var card_h = 116.0
 	var gap = 8.0
 	var row_gap = 8.0
-	var per_row = [4, 2]
+	var per_row = [4, 3]
 
 	for i in hero_count:
 		var row = 0 if i < per_row[0] else 1
@@ -245,6 +246,22 @@ func _build():
 				# Dokunulabilir olduğunu belli etmek için kart çerçevesi kahramanın renginde
 				hframe.color = Color(hero_colors[i].r, hero_colors[i].g, hero_colors[i].b, 0.7)
 				hbot.color = Color(hero_colors[i].r, hero_colors[i].g, hero_colors[i].b, 0.7)
+				if i == HeroManager.FERRO_ID:
+					# En yeni kahraman: açılana kadar köşede "NEW" rozeti
+					var badge_bg = ColorRect.new()
+					badge_bg.size = Vector2(34, 15)
+					badge_bg.position = Vector2(cx + 4, cy + 7)
+					badge_bg.color = hero_colors[i]
+					ui.add_child(badge_bg)
+					var badge = Label.new()
+					badge.text = "NEW"
+					badge.size = Vector2(34, 15)
+					badge.position = Vector2(cx + 4, cy + 6)
+					badge.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+					badge.add_theme_font_override("font", UIFont.title(1))
+					badge.add_theme_font_size_override("font_size", 9)
+					badge.add_theme_color_override("font_color", Color(0.12, 0.07, 0.0))
+					ui.add_child(badge)
 			else:
 				unlock_lbl.text = "Reach Lvl 5" if i == 2 else "Reach Lvl 10"
 				unlock_lbl.add_theme_color_override("font_color", Color(0.5, 0.4, 0.6, 0.8))
@@ -740,15 +757,16 @@ func _process(delta):
 		title_lbl.scale = Vector2(s, s)
 		title_lbl.pivot_offset = Vector2(240, 36)
 
-# Reklamla açılan kahramanın (BLAZE, POLARIS) kilit açma penceresi: 3 ödüllü reklam, her biri
+# Reklamla açılan kahramanın (BLAZE, POLARIS, FERRO) kilit açma penceresi: 3 ödüllü reklam, her biri
 # ayrı ayrı oyuncunun isteğiyle izlenir. İlerleme her ödülde kaydedilir; pencere kapatılsa da kaybolmaz.
 func _show_ad_unlock(ui: CanvasLayer, hid: int, accent: Color):
 	var required = HeroManager.ads_required(hid)
 	var hname = HeroManager.AD_HEROES[hid]["name"]
 	var ga_name = HeroManager.HERO_NAMES[hid]
-	var icon = "🔥" if hid == HeroManager.BLAZE_ID else "🧲"
+	var icon = {HeroManager.BLAZE_ID: "🔥", HeroManager.POLARIS_ID: "🧲", HeroManager.FERRO_ID: "💧"}.get(hid, "🎬")
 	var blurb = {HeroManager.BLAZE_ID: "Crimson armor, a crest of flames\nand jet boots that roar to life.",
-		HeroManager.POLARIS_ID: "Living magnetic field: hovers on\nits own field, compass in its heart."}.get(hid, "")
+		HeroManager.POLARIS_ID: "Living magnetic field: hovers on\nits own field, compass in its heart.",
+		HeroManager.FERRO_ID: "A living drop of liquid metal.\nIt spikes up at every magnet!"}.get(hid, "")
 
 	var overlay = ColorRect.new()
 	overlay.set_anchors_preset(Control.PRESET_FULL_RECT)

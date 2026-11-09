@@ -54,12 +54,13 @@ GDScript'te (Godot 4) aynı fonksiyon içindeki iki ayrı lambda, dışarıdaki 
 - Testlerde GameAnalytics'e gerçek olay gitmemesi için autoload'u stub ile değiştir.
 
 ## Kahramanlar
-- 0=Cyborg, 1=Pink, 2=Shadow (Lvl 5), 3=Mech (Lvl 10), 4=Blaze, 5=Polaris. Çizimler `PlayerVisual.gd`; menüdeki 0–3 önizlemeleri `MainMenu.gd::_get_hero_preview_script` içinde ayrı kopya, reklamla açılanlar (4, 5) doğrudan `PlayerVisual` (`preview_hero`) kullanıyor. Adlar tek yerde: `HeroManager.HERO_NAMES`.
-- Menü: üstte 4, altta 2 kart (reklamla açılanlar), `per_row = [4, 2]`.
-- **Blaze ve Polaris 3'er ödüllü reklamla açılır** (`HeroManager.AD_HEROES`; ilerleme `user://blaze_ads.dat`, `user://polaris_ads.dat`). Her reklam oyuncunun ayrı dokunuşuyla başlar, ödül her izlemede kaydedilir (AdMob kurallarına uygun: isteğe bağlı, ödül önceden açıkça yazılı). Pencere: `MainMenu.gd::_show_ad_unlock(ui, hero_id, renk)`.
+- 0=Cyborg, 1=Pink, 2=Shadow (Lvl 5), 3=Mech (Lvl 10), 4=Blaze, 5=Polaris, 6=Ferro. Çizimler `PlayerVisual.gd`; menüdeki 0–3 önizlemeleri `MainMenu.gd::_get_hero_preview_script` içinde ayrı kopya, reklamla açılanlar (4, 5, 6) doğrudan `PlayerVisual` (`preview_hero`) kullanıyor. Adlar tek yerde: `HeroManager.HERO_NAMES`.
+- Menü: üstte 4, altta 3 kart (reklamla açılanlar), `per_row = [4, 3]`. Ferro kilitliyken kartında "NEW" rozeti var.
+- **Blaze, Polaris ve Ferro 3'er ödüllü reklamla açılır** (`HeroManager.AD_HEROES`; ilerleme `user://blaze_ads.dat`, `user://polaris_ads.dat`, `user://ferro_ads.dat`). Her reklam oyuncunun ayrı dokunuşuyla başlar, ödül her izlemede kaydedilir (AdMob kurallarına uygun: isteğe bağlı, ödül önceden açıkça yazılı). Pencere: `MainMenu.gd::_show_ad_unlock(ui, hero_id, renk)`.
 - Polaris (`_draw_polaris`) bacaksız süzülür; kahraman çizimlerinde `draw_set_transform` KULLANMA: ölüm animasyonu tüm çizime `draw_set_transform_matrix` uyguluyor, iç çağrı onu bozar (elips için nokta listesi kullan).
+- **Ferro** (`_draw_ferro`, `_ferro_update`): insansı değil, canlı ferrosıvı damlası. Kontur = elips + dalgalanma + diken katkısı (`_fx_r`), açıya göre yıldız biçimli olduğu için gövde merkezden üçgen yelpazeyle çizilir (`_fx_fan` → `RenderingServer.canvas_item_add_triangle_array`; draw_polygon üçgenleme hatası riski yok, ölüm dönüşümü de uygulanır). Dikenler mıknatıs yönüne döner (vitrinde 4.6 sn'de bir sahte mıknatıs), hıza göre uzar, yere düşünce yaylanır + damlacık saçar. Kenardaki yanardöner çizgi diken bölgesinde sönük (polyline köşeleri dikenleri doldurmasın), dikenlere ayrı gümüş kenar çizilir.
 - Şimdilik ExtraLife ile aynı rewarded ad unit kullanılıyor; AdMob'da ayrı bir "HeroUnlock" unit'i açılırsa raporlar ayrışır.
-- GA Design olayları: `HeroUnlock:<Blaze|Polaris>:Ad1..Ad3`, `HeroUnlock:<ad>:Unlocked` — kaç kişinin hangi adımda bıraktığı görülebilir.
+- GA Design olayları: `HeroUnlock:<Blaze|Polaris|Ferro>:Ad1..Ad3`, `HeroUnlock:<ad>:Unlocked` — kaç kişinin hangi adımda bıraktığı görülebilir.
 - Yeni kahraman eklerken: `HeroManager.HERO_COUNT/HERO_NAMES` (+ reklamlıysa `AD_HEROES`), `PlayerVisual._draw_hero` + `HERO_ACCENTS`, `Player.VOICE_PITCH`, menüdeki `hero_names/hero_colors/hero_locked/per_row` birlikte güncellenmeli.
 
 ## Ölüm, Çıkış ve Level Girişi Animasyonları
