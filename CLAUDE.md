@@ -47,7 +47,7 @@ GDScript'te (Godot 4) aynı fonksiyon içindeki iki ayrı lambda, dışarıdaki 
 
 ## Sürüm
 - Proje Godot 4.6 ile kaydedilmiş (`config/features` 4.6, sahnelerde `unique_id`). Mac'te `/Applications/Godot 4.6.app` (4.6.3 + şablonlar) var; `/Applications/Godot.app` 4.4.1 diğer oyunlar için, Magnet Shift'i onunla açma.
-- Play Console'a her yüklemede `export_presets.cfg` → `version/code` artırılmalı (1.0.0=1, 1.0.1=2, 1.0.2=3, 1.1.0=4; sıradaki 5).
+- Play Console'a her yüklemede `export_presets.cfg` → `version/code` artırılmalı (1.0.0=1, 1.0.1=2, 1.0.2=3, 1.1.0=4, 1.2.0=5; sıradaki 6).
 - Release keystore ve export parolaları sadece Windows PC'de; ayrıntı ve derleme komutları PROGRESS.md bölüm 5.
 
 ## Analitik
