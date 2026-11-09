@@ -13,6 +13,10 @@ Bu dosya başka bir bilgisayarda devam edecek Claude oturumu için yazıldı. Ö
 - Masaüstünde (Godot 4.6.3, 480x854 / 480x1040) test edildi: 50 level hatasız açılıyor, akışlar (level geçişi, retry, game over, board, Polaris kilidi) çalışıyor. **Telefonda henüz denenmedi**; sesler sentetik, cihazda dinlenmeli.
 - 1.1.0 (code 4) 2026-11-06'da **bu Mac'ten** derlenip Production'a gönderildi (isim/açıklamalar/7 ekran görüntüsü aynı incelemede). Managed publishing kapalı: onaylanınca kendiliğinden yayına girer. Sonraki yükleme `version/code=5` olmalı.
 
+## 2026-11-09 (3) — 1.2.0 (code 5) derlendi
+- `~/Desktop/MagnetShift_1.2.0_code5.aab` (imza + 16 KB doğrulandı). 1.1.0'dan beri android/addons/export ayarlarında yalnızca sürüm satırı değişti → izinler aynı, Data safety değişmez.
+- İçerik: 9 bekçi + NEW GUARD kartı, FERRO, yeni ses butonu, AWARDS kaydırma, kapanış çökmesi düzeltmesi, ödüllü reklam tekrar sayma düzeltmesi. Sıradaki code 6.
+
 ## 2026-11-09 (2) — Ödüllü reklam iki kez sayılıyordu (düzeltildi, sonraki sürüme)
 - Kullanıcı telefonda fark etti: kahramanlar 3 yerine 2 reklamda açılıyordu. Sebep: aynı uid + eski reklam nesnesinin sinyallere bağlı kalması → 2. reklam kapanınca 1. reklamın geri çağrısı da çalışıyordu (sayaç 1→3→6). CONTINUE +3 ❤️ reklamını da etkiliyordu (oturumdaki 2. kullanımda eski panelin geri çağrısı da tetikleniyordu).
 - Düzeltme `AdManager._finish_rewarded/_detach_rewarded`. Sahte eklentiyle doğrulandı (eski: 1,3,6; yeni: 1,2,3). Canlı 1.1.0'da bu hata VAR; code 5 ile gider.
