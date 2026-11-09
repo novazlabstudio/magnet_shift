@@ -13,7 +13,7 @@ Bu dosya başka bir bilgisayarda devam edecek Claude oturumu için yazıldı. Ö
 - Masaüstünde (Godot 4.6.3, 480x854 / 480x1040) test edildi: 50 level hatasız açılıyor, akışlar (level geçişi, retry, game over, board, Polaris kilidi) çalışıyor. **Telefonda henüz denenmedi**; sesler sentetik, cihazda dinlenmeli.
 - 1.1.0 (code 4) 2026-11-06'da **bu Mac'ten** derlenip Production'a gönderildi (isim/açıklamalar/7 ekran görüntüsü aynı incelemede). Managed publishing kapalı: onaylanınca kendiliğinden yayına girer. Sonraki yükleme `version/code=5` olmalı.
 
-## 2026-11-09 (3) — 1.2.0 (code 5) derlendi
+## 2026-11-09 (3) — 1.2.0 (code 5) derlendi, 2026-11-10 incelemeye gönderildi (full rollout); 1.1.0 6 Kasım'da yayına girdi
 - `~/Desktop/MagnetShift_1.2.0_code5.aab` (imza + 16 KB doğrulandı). 1.1.0'dan beri android/addons/export ayarlarında yalnızca sürüm satırı değişti → izinler aynı, Data safety değişmez.
 - İçerik: 9 bekçi + NEW GUARD kartı, FERRO, yeni ses butonu, AWARDS kaydırma, kapanış çökmesi düzeltmesi, ödüllü reklam tekrar sayma düzeltmesi. Sıradaki code 6.
 
