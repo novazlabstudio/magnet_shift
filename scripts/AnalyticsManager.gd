@@ -1,11 +1,11 @@
 extends Node
 
 func _get_game_key() -> String:
-	var p = ["278ef5f5", "a94a40c1", "092d6848", "2e04f9d0"]
+	var p = ["ef99f975", "2ea360fd", "53259fbb", "e74b04ec"]
 	return "".join(p)
 
 func _get_secret_key() -> String:
-	var p = ["4d4d3655", "9ec56de8", "ce47bc84", "a3ccf8b3", "022ffd75"]
+	var p = ["76942bce", "069edca5", "71ea3b6e", "70a52d74", "d55d58a5"]
 	return "".join(p)
 
 const API_BASE = "https://api.gameanalytics.com/v2/%s"

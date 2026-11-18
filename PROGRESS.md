@@ -1,6 +1,6 @@
 # Magnet Shift — Durum ve Devam Notu
 
-Son güncelleme: 2026-11-06 (Mac oturumu)
+Son güncelleme: 2026-11-18 (Mac oturumu)
 
 Bu dosya başka bir bilgisayarda devam edecek Claude oturumu için yazıldı. Önce bunu, sonra teknik kurallar için [CLAUDE.md](CLAUDE.md)'yi oku. Kullanıcıyla Türkçe konuş; oyun içi metinler her zaman İngilizce.
 
@@ -12,6 +12,12 @@ Bu dosya başka bir bilgisayarda devam edecek Claude oturumu için yazıldı. Ö
 5. **BOARD hatası:** kök neden kaydın yalnızca game over/Level 50'de yazılmasıydı. Artık her koşu tek satır, her level bitişinde güncelleniyor; eski kayıtlar taşındı.
 - Masaüstünde (Godot 4.6.3, 480x854 / 480x1040) test edildi: 50 level hatasız açılıyor, akışlar (level geçişi, retry, game over, board, Polaris kilidi) çalışıyor. **Telefonda henüz denenmedi**; sesler sentetik, cihazda dinlenmeli.
 - 1.1.0 (code 4) 2026-11-06'da **bu Mac'ten** derlenip Production'a gönderildi (isim/açıklamalar/7 ekran görüntüsü aynı incelemede). Managed publishing kapalı: onaylanınca kendiliğinden yayına girer. Sonraki yükleme `version/code=5` olmalı.
+
+## 2026-11-18 — 1.2.1 (code 6): yeni GameAnalytics hesabı
+- Eski GA hesabına girilemedi (hangi maille açıldığı bilinmiyor; şifre sıfırlama mailleri gelmedi). novazlabstudio@gmail.com ile **Sign in with Google** üzerinden yeni GA hesabı açıldı: organizasyon/stüdyo `novazlab`, oyun Magnet Shift (Android, SDK "Other", store Google Play).
+- `AnalyticsManager.gd` yeni game/secret key'e geçirildi (init isteğiyle doğrulandı: 200 enabled). Eski anahtarlar: game key `278ef5f5a94a40c1092d68482e04f9d0` (eski hesap, destekten kurtarılırsa geçmiş veri orada).
+- Başka değişiklik yok → izinler/Data safety aynı. AAB: `~/Desktop/MagnetShift_1.2.1_code6.aab` (imza + 16 KB doğrulandı). Sıradaki code 7.
+- GA girişi: gameanalytics.com → Sign in with Google → novazlabstudio@gmail.com (şifre yok).
 
 ## 2026-11-09 (3) — 1.2.0 (code 5) derlendi, 2026-11-10 incelemeye gönderildi (full rollout); 1.1.0 6 Kasım'da yayına girdi
 - `~/Desktop/MagnetShift_1.2.0_code5.aab` (imza + 16 KB doğrulandı). 1.1.0'dan beri android/addons/export ayarlarında yalnızca sürüm satırı değişti → izinler aynı, Data safety değişmez.
