@@ -13,12 +13,12 @@ Bu dosya başka bir bilgisayarda devam edecek Claude oturumu için yazıldı. Ö
 - Masaüstünde (Godot 4.6.3, 480x854 / 480x1040) test edildi: 50 level hatasız açılıyor, akışlar (level geçişi, retry, game over, board, Polaris kilidi) çalışıyor. **Telefonda henüz denenmedi**; sesler sentetik, cihazda dinlenmeli.
 - 1.1.0 (code 4) 2026-11-06'da **bu Mac'ten** derlenip Production'a gönderildi (isim/açıklamalar/7 ekran görüntüsü aynı incelemede). Managed publishing kapalı: onaylanınca kendiliğinden yayına girer. Sonraki yükleme `version/code=5` olmalı.
 
-## 2026-11-18 — 1.2.1 (code 6): yeni GameAnalytics hesabı
+## 2026-11-18 — 1.2.1 (code 7): yeni GameAnalytics hesabı
 - Eski GA hesabına girilemedi (hangi maille açıldığı bilinmiyor; şifre sıfırlama mailleri gelmedi). novazlabstudio@gmail.com ile **Sign in with Google** üzerinden yeni GA hesabı açıldı: organizasyon/stüdyo `novazlab`, oyun Magnet Shift (Android, SDK "Other", store Google Play).
 - `AnalyticsManager.gd` yeni game/secret key'e geçirildi (init isteğiyle doğrulandı: 200 enabled). Eski anahtarlar: game key `278ef5f5a94a40c1092d68482e04f9d0` (eski hesap, destekten kurtarılırsa geçmiş veri orada).
-- Başka değişiklik yok → izinler/Data safety aynı. AAB: `~/Desktop/MagnetShift_1.2.1_code6.aab` (imza + 16 KB doğrulandı). Sıradaki code 7.
+- Başka değişiklik yok → izinler/Data safety aynı. İlk AAB code 6 idi (aşağıya bak).
 - GA girişi: gameanalytics.com → Sign in with Google → novazlabstudio@gmail.com (şifre yok).
-- Play Console code 6'yı "android.hardware.screen.portrait required hardware feature" uyarısıyla incelemeye göndermedi (dikey kilit bu özelliği örtük olarak zorunlu yapıyor). `tools/build_aab.sh` artık manifest'e `<uses-feature android:name="android.hardware.screen.portrait" android:required="false"/>` ekliyor; AAB yeniden derlendi ve doğrulandı (aynı dosya adı).
+- Play Console code 6'yı "android.hardware.screen.portrait required hardware feature" uyarısıyla incelemeye göndermedi (dikey kilit bu özelliği örtük olarak zorunlu yapıyor). `tools/build_aab.sh` artık manifest'e `<uses-feature android:name="android.hardware.screen.portrait" android:required="false"/>` ekliyor; Code 6 Play'e yüklendiği için tekrar kullanılamaz → yeni AAB **code 7**: `~/Desktop/MagnetShift_1.2.1_code7.aab` (imza, 16 KB, manifest doğrulandı). Sıradaki code 8.
 
 ## 2026-11-09 (3) — 1.2.0 (code 5) derlendi, 2026-11-10 incelemeye gönderildi (full rollout); 1.1.0 6 Kasım'da yayına girdi
 - `~/Desktop/MagnetShift_1.2.0_code5.aab` (imza + 16 KB doğrulandı). 1.1.0'dan beri android/addons/export ayarlarında yalnızca sürüm satırı değişti → izinler aynı, Data safety değişmez.
