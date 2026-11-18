@@ -32,6 +32,20 @@ if [ ! -f android/build/build.gradle ] || [ "$(cat android/.build_version 2>/dev
   echo "Android derleme şablonu (4.6.3) kuruldu."
 fi
 
+# Dikey kilit Android'de "android.hardware.screen.portrait" özelliğini zorunlu sayar; Play Console
+# bunu "cihaz uyumluluğunu kısıtlıyor" diye reddediyor (2026-11-18). Özelliği açıkça isteğe bağlı yap.
+MANIFEST=android/build/src/main/AndroidManifest.xml
+if ! grep -q 'android.hardware.screen.portrait' "$MANIFEST"; then
+  python3 - "$MANIFEST" <<'PY'
+import sys
+p = sys.argv[1]; s = open(p).read()
+decl = '    <uses-feature\n        android:name="android.hardware.screen.portrait"\n        android:required="false" />\n\n    <application'
+s = s.replace('    <application', decl, 1)
+open(p, 'w').write(s)
+PY
+fi
+grep -q 'android.hardware.screen.portrait' "$MANIFEST" || { echo "HATA: manifest'e screen.portrait eklenemedi" >&2; exit 1; }
+
 CODE=$(grep -m1 '^version/code=' export_presets.cfg | cut -d= -f2)
 NAME=$(grep -m1 '^version/name=' export_presets.cfg | cut -d= -f2 | tr -d '"')
 

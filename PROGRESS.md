@@ -18,6 +18,7 @@ Bu dosya başka bir bilgisayarda devam edecek Claude oturumu için yazıldı. Ö
 - `AnalyticsManager.gd` yeni game/secret key'e geçirildi (init isteğiyle doğrulandı: 200 enabled). Eski anahtarlar: game key `278ef5f5a94a40c1092d68482e04f9d0` (eski hesap, destekten kurtarılırsa geçmiş veri orada).
 - Başka değişiklik yok → izinler/Data safety aynı. AAB: `~/Desktop/MagnetShift_1.2.1_code6.aab` (imza + 16 KB doğrulandı). Sıradaki code 7.
 - GA girişi: gameanalytics.com → Sign in with Google → novazlabstudio@gmail.com (şifre yok).
+- Play Console code 6'yı "android.hardware.screen.portrait required hardware feature" uyarısıyla incelemeye göndermedi (dikey kilit bu özelliği örtük olarak zorunlu yapıyor). `tools/build_aab.sh` artık manifest'e `<uses-feature android:name="android.hardware.screen.portrait" android:required="false"/>` ekliyor; AAB yeniden derlendi ve doğrulandı (aynı dosya adı).
 
 ## 2026-11-09 (3) — 1.2.0 (code 5) derlendi, 2026-11-10 incelemeye gönderildi (full rollout); 1.1.0 6 Kasım'da yayına girdi
 - `~/Desktop/MagnetShift_1.2.0_code5.aab` (imza + 16 KB doğrulandı). 1.1.0'dan beri android/addons/export ayarlarında yalnızca sürüm satırı değişti → izinler aynı, Data safety değişmez.
