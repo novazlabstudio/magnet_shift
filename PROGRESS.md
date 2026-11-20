@@ -25,6 +25,7 @@ Gap analizi sonrası büyük güncelleme. Hepsi sunucusuz ve ücretsiz.
 - **Yeni izin:** yalnızca `POST_NOTIFICATIONS` (diğerleri AdMob'dan zaten vardı). Gizlilik politikası güncellendi (`~/magnet_shift_policy`, yerel commit, push yok).
 - **Mağaza:** `docs/STORE_LISTING.md` (en-US + 9 dil), görseller `~/Desktop/MagnetShift_Store_1.3.0/` (başlıklı/başlıksız ekran görüntüleri, ikon A/B, feature graphic, 37 sn tanıtım videosu .avi). Play Games görselleri `~/Desktop/MagnetShift_PlayGames/`.
 - **Test düzeneği:** `tools/test_harness/` (stub'lı kopya, senaryolar, duman testi, otopilot, video kaydı). 50 level + 28 endless stage hatasız açıldı; ekranlar ekran görüntüsüyle kontrol edildi. **Telefonda henüz denenmedi** (bildirim, Play Games, reklamlar).
+- **2026-11-21 telefon testi düzeltmesi:** mağaza butonları tıklanmıyordu (TouchScroll içeriği IGNORE yapıyordu) → TouchScroll artık kısa dokunuşu altındaki butona iletiyor (`_tap`). Kart yenileme lambda yakalama hatası düzeltildi (`ctx` sözlüğü). Her izlenen ödüllü reklam +10 coin (`AdManager.AD_BONUS_COINS`); mağazanın üstünde FREE COINS (reklam izle +10).
 - AAB (Play Games kimliksiz deneme derlemesi): `~/Desktop/MagnetShift_1.3.0_code8.aab`. Kimlikler gelince `PlayGamesIds.gd` doldur → `build_services.sh` → `build_aab.sh` (code 8 henüz yüklenmedi, aynı kod kullanılabilir).
 
 ## 2026-11-18 — 1.2.1 (code 7): yeni GameAnalytics hesabı

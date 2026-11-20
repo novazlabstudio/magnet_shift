@@ -4,6 +4,7 @@ extends Node
 const TEST_REWARDED_ID := "ca-app-pub-3940256099942544/5224354917"
 const PROD_REWARDED_ID := "ca-app-pub-5920018930695278/5551017561"
 
+const AD_BONUS_COINS := 10
 var _rewarded_ad: RewardedAd = null
 var _loader := RewardedAdLoader.new()
 var _is_loading: bool = false
@@ -118,6 +119,10 @@ func _finish_rewarded(ad: RewardedAd, state: Dictionary, on_result: Callable, ea
 	_detach_rewarded(ad)
 	ad.destroy()
 	_preload_rewarded_ad()
+	if earned:
+		# 1.3: sonuna kadar izlenen her ödüllü reklam, asıl ödülün yanında +10 coin verir
+		Progress.add_coins(AD_BONUS_COINS, "AdBonus")
+		Progress.toast("🎬", "THANKS FOR WATCHING", "+%d COINS" % AD_BONUS_COINS)
 	on_result.call(earned)
 
 func _detach_rewarded(ad: RewardedAd) -> void:

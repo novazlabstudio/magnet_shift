@@ -34,6 +34,30 @@ func seed_save(max_level: int, wallet: int, daily_avail: bool) -> void:
 		Progress.data["daily_claim_day"] = 3
 	Progress._save()
 
+func tap(pos: Vector2) -> void:
+	var e = InputEventMouseButton.new()
+	e.button_index = MOUSE_BUTTON_LEFT
+	e.position = pos; e.global_position = pos; e.pressed = true
+	Input.parse_input_event(e)
+	await wait(0.08)
+	var r = e.duplicate(); r.pressed = false
+	Input.parse_input_event(r)
+	await wait(0.05)
+
+func drag(a: Vector2, b: Vector2) -> void:
+	var e = InputEventMouseButton.new()
+	e.button_index = MOUSE_BUTTON_LEFT
+	e.position = a; e.global_position = a; e.pressed = true
+	Input.parse_input_event(e)
+	for i in 10:
+		await wait(0.02)
+		var m = InputEventMouseMotion.new()
+		var p = a.lerp(b, (i + 1) / 10.0)
+		m.position = p; m.global_position = p; m.button_mask = MOUSE_BUTTON_MASK_LEFT
+		Input.parse_input_event(m)
+	var r = e.duplicate(); r.pressed = false; r.position = b; r.global_position = b
+	Input.parse_input_event(r)
+
 func gm() -> Node:
 	return get_tree().current_scene
 
@@ -354,6 +378,26 @@ func _run() -> void:
 			await wait(2.2)
 			get_tree().reload_current_scene()
 			await wait(2.0)
+		"shopbuy":
+			seed_save(12, 80, false)
+			get_tree().change_scene_to_file("res://scenes/MainMenu.tscn")
+			await wait(0.8)
+			gm()._show_shop(gm().get_node("UI"))
+			await wait(0.8)
+			await shot("21_shop_top")
+			for k in 2:
+				await tap(Vector2(238, 352))
+				await wait(0.4)
+			print("DBG after spark taps wallet=", Progress.wallet(), " owns spark=", Progress.owns_trail("spark"), " equipped=", Progress.current_trail())
+			await shot("22_shop_bought")
+			await tap(Vector2(375, 156))
+			await wait(0.6)
+			print("DBG after ad wallet=", Progress.wallet())
+			# kaydırma hâlâ çalışıyor mu: sürükle
+			await drag(Vector2(240, 700), Vector2(240, 300))
+			await wait(0.6)
+			print("DBG after drag wallet=", Progress.wallet(), " owns=", Progress.data["trails"])
+			await shot("23_shop_scrolled")
 		"bot":
 			seed_save(50, 300, false)
 			for lv in [2, 3, 5, 8, 12, 16]:

@@ -2142,32 +2142,75 @@ func _show_shop(ui: CanvasLayer) -> void:
 	overlay.add_child(scroll)
 	var root = Control.new()
 	scroll.content.add_child(root)
+	# Lambda'lar yerel değişkeni KOPYA yakalar: yenileme fonksiyonu sözlükte paylaşılır
+	var ctx := {"refresh": func(): pass}
 	var y = 0.0
+	y = _shop_section(root, y, "FREE COINS  ·  every ad you watch pays")
+	var ad_card = _card_base(root, Vector2(18, y), 76)
+	ad_card[0].size = Vector2(444, 76)
+	var ad_sb: StyleBoxFlat = ad_card[1]
+	ad_sb.border_color = Color(0.4, 1.0, 0.55, 0.85)
+	ad_sb.bg_color = Color(0.04, 0.14, 0.08, 1.0)
+	var ad_name: Label = ad_card[2]
+	ad_name.text = "🎬  WATCH AN AD"
+	ad_name.position = Vector2(18, 14)
+	ad_name.size = Vector2(220, 22)
+	ad_name.horizontal_alignment = HORIZONTAL_ALIGNMENT_LEFT
+	ad_name.add_theme_font_size_override("font_size", 15)
+	ad_name.add_theme_color_override("font_color", Color(0.6, 1.0, 0.7))
+	var ad_hint = Label.new()
+	ad_hint.text = "Get coins for trails and heroes"
+	ad_hint.position = Vector2(18, 40)
+	ad_hint.size = Vector2(250, 20)
+	ad_hint.add_theme_font_size_override("font_size", 12)
+	ad_hint.add_theme_color_override("font_color", Color(0.7, 0.8, 0.75))
+	ad_card[0].add_child(ad_hint)
+	var ad_btn: Button = ad_card[3]
+	ad_btn.position = Vector2(284, 18)
+	ad_btn.size = Vector2(146, 40)
+	ad_btn.text = "+%d 💰" % AdManager.AD_BONUS_COINS
+	ad_btn.add_theme_font_size_override("font_size", 17)
+	ad_btn.add_theme_color_override("font_color", Color(1.0, 0.85, 0.3))
+	ad_btn.pressed.connect(func():
+		if ad_btn.disabled:
+			return
+		ad_btn.disabled = true
+		ad_btn.text = "LOADING..."
+		AnalyticsManager.design_event("Shop:WatchAd")
+		# Coin'i AdManager verir (her izlenen reklam +10); burada yalnızca buton/sayaç güncellenir
+		AdManager.show_rewarded_ad(func(earned: bool):
+			ad_btn.disabled = false
+			ad_btn.text = "+%d 💰" % AdManager.AD_BONUS_COINS
+			if earned:
+				SoundManager.play_sfx("trophy", -4.0)
+				ctx["refresh"].call()
+			else:
+				_menu_toast("No ad available right now. Try again soon!")))
+	y += 90
 	y = _shop_section(root, y, "TRAILS  ·  leave a mark as you fly")
 	var trails = Progress.TRAILS
 	var armed := {"id": ""}
 	var cards := []
-	var refresh := func(): pass
 	for i in trails.size():
 		var t = trails[i]
 		var cx = 18 + (i % 3) * 150
 		var cy = y + (i / 3) * 150
-		cards.append(_trail_card(root, Vector2(cx, cy), t, armed, func(): refresh.call()))
+		cards.append(_trail_card(root, Vector2(cx, cy), t, armed, func(): ctx["refresh"].call()))
 	y += ceil(trails.size() / 3.0) * 150 + 10
 	y = _shop_section(root, y, "HEROES  ·  or unlock them with ads")
 	var hero_cols = {HeroManager.BLAZE_ID: Color(1.0, 0.45, 0.05), HeroManager.POLARIS_ID: Color(0.72, 0.42, 1.0), HeroManager.FERRO_ID: Color(1.0, 0.78, 0.2)}
 	var hi = 0
 	for hid in [HeroManager.BLAZE_ID, HeroManager.POLARIS_ID, HeroManager.FERRO_ID]:
-		cards.append(_hero_card(root, Vector2(18 + hi * 150, y), hid, hero_cols[hid], armed, func(): refresh.call()))
+		cards.append(_hero_card(root, Vector2(18 + hi * 150, y), hid, hero_cols[hid], armed, func(): ctx["refresh"].call()))
 		hi += 1
 	y += 170
 	root.custom_minimum_size = Vector2(480, y)
 	root.size = Vector2(480, y)
-	refresh = func():
+	ctx["refresh"] = func():
 		wallet_lbl.text = "💰 %d COINS" % Progress.wallet()
 		for c in cards:
 			c.call()
-	refresh.call()
+	ctx["refresh"].call()
 	scroll._ignore_input(root)
 	overlay.tree_exited.connect(func(): if is_inside_tree(): _rebuild_menu())
 	AnalyticsManager.design_event("Shop:Open")
