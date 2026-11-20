@@ -44,6 +44,14 @@ var _shake_amp: float = 0.0
 var _exiting: bool = false
 var vignette: TextureRect = null
 const TUTORIAL_FILE := "user://tutorial_done.dat"
+# 1.3: süre (ilk mıknatısa dokunuştan kapıya), duraklatma süresi düşülür
+var _t_start_ms: int = -1
+var _paused_ms: int = 0
+var _pause_at: int = 0
+var _elapsed_ms: int = 0
+var _new_best_time: bool = false
+var _fail_count: int = 0
+var _bonus_done: bool = false
 
 func get_level_data() -> Dictionary:
 	var levels = {
@@ -98,13 +106,22 @@ func get_level_data() -> Dictionary:
 		49: {"bg":Color(0.02,0.02,0.02),"pc":Color(0.4,0.4,0.4),"platforms":[Vector4(25,750,50,18), Vector4(405,721,50,18), Vector4(25,693,50,18), Vector4(405,665,50,18), Vector4(25,637,50,18), Vector4(405,609,50,18), Vector4(25,580,50,18), Vector4(405,552,50,18), Vector4(25,524,50,18), Vector4(405,496,50,18), Vector4(25,468,50,18), Vector4(405,440,50,18), Vector4(25,411,50,18), Vector4(405,383,50,18), Vector4(25,355,50,18), Vector4(405,327,50,18), Vector4(25,299,50,18), Vector4(405,270,50,18), Vector4(25,242,50,18), Vector4(405,214,50,18), Vector4(25,186,50,18), Vector4(405,158,50,18), Vector4(25,130,50,18)],"extra_magnets":[Vector2(50,195), Vector2(430,287), Vector2(50,380), Vector2(430,473), Vector2(50,566), Vector2(430,658), Vector2(80,678), Vector2(400,877), Vector2(80,1077), Vector2(400,1276), Vector2(80,1475), Vector2(400,1674), Vector2(80,1873), Vector2(400,2072), Vector2(80,2271), Vector2(400,2470), Vector2(80,2669), Vector2(400,2869), Vector2(80,3068), Vector2(400,3267), Vector2(80,3466), Vector2(400,3665), Vector2(80,3864), Vector2(400,4063), Vector2(80,4262), Vector2(400,4461), Vector2(80,4661), Vector2(400,4860), Vector2(80,5059), Vector2(400,5258), Vector2(80,5457), Vector2(400,5656), Vector2(80,5855), Vector2(400,6054)],"coins":[Vector2(50,710), Vector2(430,681), Vector2(50,597), Vector2(430,569), Vector2(50,484), Vector2(430,456), Vector2(50,371), Vector2(430,343), Vector2(50,259), Vector2(430,230), Vector2(50,146)],"lasers":[{"pos":Vector2(240,741),"size":Vector2(200,10),"blink":false}, {"pos":Vector2(240,656),"size":Vector2(200,10),"blink":true}, {"pos":Vector2(240,571),"size":Vector2(200,10),"blink":false}],"guards":[{"pos":Vector2(430,721),"patrol":50.0}, {"pos":Vector2(430,609),"patrol":50.0}, {"pos":Vector2(430,496),"patrol":50.0}, {"pos":Vector2(430,383),"patrol":50.0}, {"pos":Vector2(430,270),"patrol":50.0}, {"pos":Vector2(430,158),"patrol":50.0}],"exit":Vector2(420,75)},
 		50: {"bg":Color(0.0,0.0,0.0),"pc":Color(1.0,0.85,0.0),"platforms":[Vector4(25,750,50,18), Vector4(405,724,50,18), Vector4(25,698,50,18), Vector4(405,672,50,18), Vector4(25,646,50,18), Vector4(405,620,50,18), Vector4(25,595,50,18), Vector4(405,569,50,18), Vector4(25,543,50,18), Vector4(405,517,50,18), Vector4(25,491,50,18), Vector4(405,465,50,18), Vector4(25,440,50,18), Vector4(405,414,50,18), Vector4(25,388,50,18), Vector4(405,362,50,18), Vector4(25,336,50,18), Vector4(405,310,50,18), Vector4(25,285,50,18), Vector4(405,259,50,18), Vector4(25,233,50,18), Vector4(405,207,50,18), Vector4(25,181,50,18), Vector4(405,155,50,18), Vector4(25,130,50,18)],"extra_magnets":[Vector2(50,195), Vector2(430,287), Vector2(50,380), Vector2(430,473), Vector2(50,566), Vector2(430,658), Vector2(80,680), Vector2(400,869), Vector2(80,1059), Vector2(400,1249), Vector2(80,1439), Vector2(400,1629), Vector2(80,1818), Vector2(400,2008), Vector2(80,2198), Vector2(400,2388), Vector2(80,2578), Vector2(400,2767), Vector2(80,2957), Vector2(400,3147), Vector2(80,3337), Vector2(400,3527), Vector2(80,3716), Vector2(400,3906), Vector2(80,4096), Vector2(400,4286), Vector2(80,4476), Vector2(400,4665), Vector2(80,4855), Vector2(400,5045), Vector2(80,5235), Vector2(400,5425), Vector2(80,5614), Vector2(400,5804), Vector2(80,5994), Vector2(400,6184)],"coins":[Vector2(50,710), Vector2(430,684), Vector2(50,606), Vector2(430,580), Vector2(50,503), Vector2(430,477), Vector2(50,400), Vector2(430,374), Vector2(50,296), Vector2(430,270), Vector2(50,193), Vector2(430,167), Vector2(50,90)],"lasers":[{"pos":Vector2(240,742),"size":Vector2(200,10),"blink":false}, {"pos":Vector2(240,664),"size":Vector2(200,10),"blink":true}, {"pos":Vector2(240,587),"size":Vector2(200,10),"blink":false}],"guards":[{"pos":Vector2(430,724),"patrol":50.0}, {"pos":Vector2(430,620),"patrol":50.0}, {"pos":Vector2(430,517),"patrol":50.0}, {"pos":Vector2(430,414),"patrol":50.0}, {"pos":Vector2(430,310),"patrol":50.0}, {"pos":Vector2(430,207),"patrol":50.0}],"exit":Vector2(420,75)},
 	}
+	if RunMode.is_active():
+		return RunMode.remix(levels, level_number)
 	return levels.get(level_number, levels[1])
 
 func _ready():
-	if level_number == 1:
-		_reset_run()
-	total_score = _load_total_score()
-	lives = _load_lives()
+	if RunMode.is_active():
+		# Endless / Daily: taban level'i mod seçer; kampanya kaydına (skor, can, yıldız) dokunulmaz
+		level_number = RunMode.base_level()
+		next_level_path = ""
+		total_score = RunMode.run_coins
+		lives = RunMode.hearts if RunMode.mode == "endless" else 0
+	else:
+		if level_number == 1:
+			_reset_run()
+		total_score = _load_total_score()
+		lives = _load_lives()
 	_build_level()
 	_setup_ui()
 	LevelTransition.fade_in()
@@ -272,6 +289,22 @@ func _build_level():
 		var is_absolute = m.x == 80.0 or m.x == 400.0
 		scaled_magnets.append(Vector2(m.x, m.y if is_absolute else m.y * scale_y))
 	_add_magnets(scaled_magnets, scaled_obstacles)
+	# 1.3 yeni mıknatıslar (yalnızca Endless / Daily verisinde var)
+	for mv in d.get("movers", []):
+		var p: Vector2 = mv["pos"]
+		var is_abs = p.x == 80.0 or p.x == 400.0
+		var wp = _resolve_position(Vector2(p.x, p.y if is_abs else p.y * scale_y), scaled_obstacles, 24.0)
+		var mm = _make_magnet(wp, "pull", mv["dx"], mv["period"])
+		if mm:
+			var rail = Node2D.new()
+			rail.set_script(load("res://scripts/MagnetKindFX.gd"))
+			rail.mode = "rail"
+			rail.rail_len = mv["dx"]
+			rail.position = wp + Vector2(0, -12)
+			rail.z_index = -1
+			add_child(rail)
+	for rp in d.get("repels", []):
+		_make_magnet(_resolve_position(Vector2(rp.x, rp.y * scale_y), scaled_obstacles, 24.0), "repel")
 	var scaled_coins = []
 	for c in d["coins"]:
 		scaled_coins.append(Vector2(c.x, c.y * scale_y))
@@ -297,7 +330,8 @@ func _build_level():
 		scaled_guards.append({"pos": Vector2(g["pos"].x, g["pos"].y * scale_y - 20), "patrol": g["patrol"]})
 	_add_guards(scaled_guards)
 	var hero_names = HeroManager.HERO_NAMES
-	AnalyticsManager.level_start(level_number, hero_names[HeroManager.get_hero()])
+	if not RunMode.is_active():
+		AnalyticsManager.level_start(level_number, hero_names[HeroManager.get_hero()])
 
 func _build_obstacle_list(platforms: Array, exit_pos: Vector2) -> Array:
 	var obstacles = []
@@ -502,28 +536,45 @@ func _add_player(pos: Vector2):
 	camera = cam
 	add_child(player)
 	player.player_died.connect(_on_player_died)
+	var trail_id = Progress.current_trail()
+	if trail_id != "none":
+		var trail = Node2D.new()
+		trail.set_script(load("res://scripts/TrailFX.gd"))
+		add_child(trail)
+		trail.setup(player, trail_id)
 
 func _add_magnets(extra: Array, obstacles: Array):
 	for pos in extra:
 		_make_magnet(_resolve_position(pos, obstacles, 24.0))
 
-func _make_magnet(pos: Vector2):
+func _make_magnet(pos: Vector2, kind: String = "pull", move_dx: float = 0.0, period: float = 3.0) -> Node2D:
 	# Veride bazı mıknatıslar neredeyse üst üste düşüyor; yakındaki varsa ikincisini ekleme
 	for existing in magnets:
 		if existing.position.distance_to(pos) < 56.0:
-			return
+			return null
 	var m = Node2D.new()
 	m.position = pos
 	m.add_to_group("magnet")
 	var d = get_level_data()
-	m.set_meta("level_color", d["pc"])
+	m.set_meta("level_color", Color(1.0, 0.25, 0.2) if kind == "repel" else d["pc"])
+	m.set_meta("kind", kind)
+	if move_dx != 0.0:
+		m.set_meta("move_dx", move_dx)
+		m.set_meta("move_period", period)
 	var visual = Node2D.new()
 	visual.set_script(load("res://scripts/MagnetVisual.gd"))
 	visual.name = "Visual"
 	m.add_child(visual)
+	if kind == "repel":
+		visual.modulate = Color(1.0, 0.68, 0.66)
+		var fx = Node2D.new()
+		fx.set_script(load("res://scripts/MagnetKindFX.gd"))
+		fx.mode = "repel"
+		m.add_child(fx)
 	m.set_script(load("res://scripts/Magnet.gd"))
 	add_child(m)
 	magnets.append(m)
+	return m
 
 func _add_coins(coin_positions: Array, obstacles: Array):
 	total_coins = coin_positions.size()
@@ -753,6 +804,10 @@ func _setup_ui():
 	var level_emojis = ["🔰","⚡","🔥","💎","🌊","🌙","🎯","🚀","👾","🏆","💥","🎮","🌀","☄️","🔮","💀","🌟","⚔️","🧨","🎖️"]
 	var emoji = level_emojis[level_number - 1] if level_number <= 20 else "🎮"
 	lvl_lbl.text = "%s LVL %d" % [emoji, level_number]
+	if RunMode.mode == "endless":
+		lvl_lbl.text = "♾️ STAGE %d" % RunMode.stage
+	elif RunMode.mode == "daily":
+		lvl_lbl.text = "📅 DAILY"
 	lvl_lbl.size = Vector2(118, 34)
 	lvl_lbl.position = Vector2(212, 10)
 	lvl_lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
@@ -1013,10 +1068,14 @@ func _pause_game():
 	_deactivate_all_magnets()
 	pause_panel.visible = true
 	get_tree().paused = true
+	_pause_at = Time.get_ticks_msec()
 
 func _resume_game():
 	pause_panel.visible = false
 	get_tree().paused = false
+	if _pause_at > 0:
+		_paused_ms += Time.get_ticks_msec() - _pause_at
+		_pause_at = 0
 
 func _quit_from_pause():
 	AnalyticsManager.design_event("Level:Quit:Level%02d" % level_number)
@@ -1024,7 +1083,10 @@ func _quit_from_pause():
 
 func _go_to_main_menu():
 	get_tree().paused = false
-	_reset_run()
+	if RunMode.is_active():
+		RunMode.clear()
+	else:
+		_reset_run()
 	get_tree().change_scene_to_file("res://scenes/MainMenu.tscn")
 
 func _notification(what):
@@ -1178,6 +1240,8 @@ func _input(event):
 			if m:
 				active_touches[event.index] = m
 				m.activate(player)
+				if _t_start_ms < 0:
+					_t_start_ms = Time.get_ticks_msec()
 			if tap_hint:
 				tap_hint.visible = false
 		else:
@@ -1197,6 +1261,8 @@ func _input(event):
 			var mm = _pick_magnet(event.position)
 			if mm:
 				mm.activate(player)
+				if _t_start_ms < 0:
+					_t_start_ms = Time.get_ticks_msec()
 			if tap_hint:
 				tap_hint.visible = false
 		else:
@@ -1247,8 +1313,11 @@ func _deactivate_all_magnets():
 func _update_lives_ui():
 	if not lives_label:
 		return
+	if RunMode.mode == "daily":
+		lives_label.text = "❤️ ∞"
+		return
 	var hearts = ""
-	for i in 5:
+	for i in (RunMode.ENDLESS_HEARTS if RunMode.mode == "endless" else 5):
 		# 🖤 koyu zeminde neredeyse görünmüyordu
 		hearts += "❤️" if i < lives else "🤍"
 	lives_label.text = hearts
@@ -1292,6 +1361,8 @@ func _on_coin_collected(_value: int):
 	coins_since_last_life += 1
 	Progress.on_coin()
 	_vibrate(30)
+	if RunMode.is_active():
+		coins_since_last_life = 0
 	if coins_since_last_life >= 5:
 		coins_since_last_life = 0
 		if lives < 5:
@@ -1315,7 +1386,9 @@ func _play_level_intro() -> void:
 	box.pivot_offset = Vector2(240, 40)
 	ui.add_child(box)
 	var title = Label.new()
-	title.text = "LEVEL %d" % level_number
+	title.text = "LEVEL %d" % level_number if not RunMode.is_active() else RunMode.title()
+	if RunMode.mode == "daily":
+		title.add_theme_font_size_override("font_size", 34)
 	title.position = Vector2(0, 0)
 	title.size = Vector2(480, 64)
 	title.add_theme_font_override("font", UIFont.title(4))
@@ -1368,6 +1441,14 @@ func _play_level_intro() -> void:
 		var tier = GuardVisual.tier_for_level(level_number)
 		if Progress.mark_guard_seen(tier):
 			_show_new_guard_card(tier, vh)
+			return
+	# Yeni mıknatıs türleriyle ilk karşılaşma (Endless / Daily)
+	for m in magnets:
+		if is_instance_valid(m) and m.has_meta("kind"):
+			var key = "repel" if m.get_meta("kind") == "repel" else ("mover" if m.has_meta("move_dx") else "")
+			if key != "" and Progress.mark_magnet_seen(key):
+				_show_new_magnet_card(key, vh)
+				return
 
 func _show_new_guard_card(tier: int, vh: float) -> void:
 	var ui = get_node_or_null("UILayer")
@@ -1389,6 +1470,7 @@ func _show_new_guard_card(tier: int, vh: float) -> void:
 	sb.shadow_color = Color(col.r, col.g, col.b, 0.35)
 	sb.shadow_size = 14
 	card.add_theme_stylebox_override("panel", sb)
+	card.add_to_group("intro_card")
 	ui.add_child(card)
 	# Bekçinin büyük, yerinde yürüyen önizlemesi
 	var spot = Node2D.new()
@@ -1503,9 +1585,14 @@ func _on_player_died():
 	if pause_button:
 		pause_button.visible = false
 	var hero_names = HeroManager.HERO_NAMES
-	AnalyticsManager.level_fail(level_number, hero_names[HeroManager.get_hero()], coins_collected)
+	if not RunMode.is_active():
+		AnalyticsManager.level_fail(level_number, hero_names[HeroManager.get_hero()], coins_collected)
 	Progress.on_death(player.death_cause if player else "")
 	_deactivate_all_magnets()
+	if RunMode.is_active():
+		_on_mode_death()
+		return
+	_fail_count = Progress.note_fail(level_number)
 	lives -= 1
 	if lives <= 0:
 		lives = 0
@@ -1532,9 +1619,20 @@ func _on_level_complete():
 		AnalyticsManager.design_event("Tutorial:Complete")
 	var hero_names = HeroManager.HERO_NAMES
 	var hero_name = hero_names[HeroManager.get_hero()]
+	_elapsed_ms = 0 if _t_start_ms < 0 else max(1, Time.get_ticks_msec() - _t_start_ms - _paused_ms)
+	if RunMode.is_active():
+		_deactivate_all_magnets()
+		_vibrate(150)
+		_on_mode_complete()
+		return
 	AnalyticsManager.level_complete(level_number, hero_name, _calculate_stars(), coins_collected)
 	_deactivate_all_magnets()
 	_vibrate(150)
+	if _elapsed_ms > 0:
+		_new_best_time = Progress.record_time(level_number, _elapsed_ms)
+	Progress.clear_fail(level_number)
+	if level_number >= 3:
+		get_tree().create_timer(2.6).timeout.connect(Notifier.maybe_ask_permission)
 	_save_total_score(total_score)
 	_save_lives(lives)
 	# Her level bitişinde koşunun skoru tabloya işlenir; oyuncu sonra menüye dönse de kaybolmaz
@@ -1553,9 +1651,14 @@ func _on_level_complete():
 	else:
 		_show_result(true, false, stars)
 
+func _clear_intro_cards() -> void:
+	for c in get_tree().get_nodes_in_group("intro_card"):
+		c.queue_free()
+
 func _show_result(success: bool, is_new_record: bool = false, stars: int = 0):
 	# Animasyonlar (ölüm/kapı) zaten bitmiş oluyor; kısa bir nefes payı yeterli
 	await get_tree().create_timer(0.25 if success else 0.35).timeout
+	_clear_intro_cards()
 	var ui = get_node_or_null("UILayer")
 	if not ui:
 		return
@@ -1579,6 +1682,8 @@ func _show_result(success: bool, is_new_record: bool = false, stars: int = 0):
 	if sub_lbl:
 		if success:
 			sub_lbl.text = "💰 %d / %d coins" % [coins_collected, total_coins]
+			if _elapsed_ms > 0:
+				sub_lbl.text += "   ⏱ " + Progress.format_time(_elapsed_ms)
 		else:
 			if player and player.death_cause == "guard" and level_number >= GuardVisual.FIRST_GUARD_LEVEL:
 				sub_lbl.text = "%s got you! (%d ❤️)" % [GuardVisual.TIERS[GuardVisual.tier_for_level(level_number)]["name"], lives]
@@ -1588,6 +1693,11 @@ func _show_result(success: bool, is_new_record: bool = false, stars: int = 0):
 	var total_sub = panel.get_node_or_null("TotalSub")
 	if total_sub:
 		total_sub.text = "🏆 Total: %d coins" % total_score
+		if success and _elapsed_ms > 0:
+			if _new_best_time:
+				total_sub.text += "  ·  ⚡ NEW BEST TIME"
+			else:
+				total_sub.text += "  ·  best " + Progress.format_time(Progress.best_time(level_number))
 	if is_new_record:
 		var record_lbl = Label.new()
 		record_lbl.text = "🥇 NEW RECORD!"
@@ -1617,6 +1727,215 @@ func _show_result(success: bool, is_new_record: bool = false, stars: int = 0):
 		next_panel_node.visible = success and next_level_path != ""
 	if success and stars > 0:
 		_show_stars_animation(ui, stars)
+	# Alt sıradaki "baştan başla" yerine o ana uygun ödüllü teklif:
+	#   başarı + coin toplandıysa → coin'leri 2 katına çıkar; aynı level'de 3+ ölüm → level'i atla
+	var restart_btn: Button = panel.get_node_or_null("RestartBtn")
+	if restart_btn:
+		if success and coins_collected > 0:
+			_rebind(restart_btn, "🎬  DOUBLE COINS  +%d 💰" % coins_collected, func(): _offer_double_coins(restart_btn))
+			restart_btn.add_theme_color_override("font_color", Color(1.0, 0.85, 0.3))
+		elif not success and _fail_count >= 3 and next_level_path != "":
+			_rebind(restart_btn, "🎬  STUCK? SKIP THIS LEVEL", func(): _offer_skip_level(restart_btn))
+			restart_btn.add_theme_color_override("font_color", Color(0.6, 1.0, 0.6))
+			AnalyticsManager.design_event("Assist:SkipOffered:Level%02d" % level_number)
+
+# Butonun eski bağlantılarını kopar, yenisini bağla
+func _rebind(btn: Button, text: String, cb: Callable) -> void:
+	for c in btn.pressed.get_connections():
+		btn.pressed.disconnect(c["callable"])
+	btn.text = text
+	btn.disabled = false
+	btn.pressed.connect(cb)
+
+func _offer_double_coins(btn: Button) -> void:
+	if _bonus_done:
+		return
+	btn.disabled = true
+	AdManager.show_rewarded_ad(func(earned: bool):
+		if earned:
+			_bonus_done = true
+			Progress.add_coins(coins_collected, "DoubleCoins")
+			btn.text = "✓  +%d COINS ADDED" % coins_collected
+			SoundManager.play_sfx("trophy", -6.0)
+		else:
+			btn.disabled = false
+			btn.text = "Ad not ready, try again"
+	)
+
+func _offer_skip_level(btn: Button) -> void:
+	btn.disabled = true
+	AdManager.show_rewarded_ad(func(earned: bool):
+		if earned:
+			AnalyticsManager.design_event("Assist:Skip:Level%02d" % level_number)
+			Progress.clear_fail(level_number)
+			if level_number + 1 > _load_max_level():
+				_save_max_level(min(level_number + 1, 50))
+			LevelTransition.flash_and_load(next_level_path)
+		else:
+			btn.disabled = false
+			btn.text = "Ad not ready, try again"
+	)
+
+# ─── ENDLESS / DAILY CHALLENGE ───────────────────────────────────────────────
+
+func _on_mode_complete() -> void:
+	RunMode.run_coins = total_score
+	if RunMode.mode == "endless":
+		var cleared = RunMode.stage
+		var best_before = int(Progress.data["endless_best"])
+		Progress.on_endless_stage(cleared)
+		Progress._mark_day()
+		AnalyticsManager.design_event("Endless:Clear:Stage%02d" % min(cleared, 99))
+		_present_panel(true, "STAGE %d CLEAR" % cleared,
+			"💰 %d coins this run   ⏱ %s" % [total_score, Progress.format_time(_elapsed_ms)],
+			"♾️ Best: stage %d" % max(best_before, cleared) + ("  ·  NEW!" if cleared > best_before else ""),
+			{"next": ["NEXT ▶", func():
+				RunMode.stage += 1
+				LevelTransition.flash_and_load(RunMode.ENDLESS_SCENE)]})
+	else:
+		var res = Progress.on_daily_challenge_clear(_elapsed_ms)
+		AnalyticsManager.design_event("DailyChallenge:Clear", _elapsed_ms / 1000.0)
+		var best = Progress.daily_challenge_state()["best_ms"]
+		var total = "Today's best: %s" % Progress.format_time(best)
+		if int(res["reward"]) > 0:
+			total += "   +%d 💰" % int(res["reward"])
+		_present_panel(true, "DAILY CLEAR",
+			"⏱ %s%s" % [Progress.format_time(_elapsed_ms), "   ⚡ NEW BEST" if res["new_best"] else ""],
+			total, {"retry": ["🔁 FASTER", _on_retry],
+				"next": ["🌍 RANK", func(): PlayGames.show_leaderboards("daily")] if PlayGames.available() else null})
+
+func _on_mode_death() -> void:
+	var fail_text = "ZAPPED" if player and player.death_cause == "laser" else "CAUGHT"
+	if RunMode.mode == "daily":
+		AnalyticsManager.design_event("DailyChallenge:Fail")
+		await get_tree().create_timer(0.35).timeout
+		_present_panel(false, fail_text, "One more try?", "Today's best: %s" % (
+			Progress.format_time(Progress.daily_challenge_state()["best_ms"]) if Progress.daily_challenge_state()["best_ms"] > 0 else "—"),
+			{"retry": ["🔁 RETRY", _on_retry]})
+		return
+	lives = max(0, lives - 1)
+	RunMode.hearts = lives
+	RunMode.run_coins = total_score
+	_update_lives_ui()
+	AnalyticsManager.design_event("Endless:Fail:Stage%02d" % min(RunMode.stage, 99))
+	await get_tree().create_timer(0.35).timeout
+	if lives > 0:
+		_present_panel(false, fail_text, "%d ❤️ left" % lives, "♾️ Stage %d" % RunMode.stage,
+			{"retry": ["🔁 RETRY", _on_retry]})
+		return
+	var cleared = RunMode.stage - 1
+	var best = int(Progress.data["endless_best"])
+	AnalyticsManager.design_event("Endless:Over", cleared)
+	var slots := {"restart": ["♾️  NEW RUN", func(): RunMode.start_endless()]}
+	if not RunMode.continued:
+		slots["retry"] = ["🎬 +1 ❤️", func():
+			AdManager.show_rewarded_ad(func(earned: bool):
+				if earned:
+					RunMode.continued = true
+					RunMode.hearts = 1
+					AnalyticsManager.design_event("Endless:Continue")
+					LevelTransition.flash_and_load(RunMode.ENDLESS_SCENE))]
+	if PlayGames.available():
+		slots["next"] = ["🌍 RANK", func(): PlayGames.show_leaderboards("endless")]
+	_present_panel(false, "ENDLESS OVER", "Cleared %d stages   💰 %d" % [cleared, total_score],
+		"♾️ Best: stage %d" % best + ("  ·  NEW RECORD!" if cleared >= best and cleared > 0 else ""), slots)
+
+# Sonuç panelini mod için doldurur. slots: "retry" / "next" / "restart" → [yazı, Callable] ya da yok (gizli)
+func _present_panel(success: bool, status: String, sub: String, total: String, slots: Dictionary) -> void:
+	_clear_intro_cards()
+	var ui = get_node_or_null("UILayer")
+	var panel = ui.get_node_or_null("ResultPanel") if ui else null
+	if panel == null:
+		return
+	panel.color = Color(0.0, 0.0, 0.03, 0.6)
+	var top_line = panel.get_node_or_null("TopLine")
+	if top_line:
+		top_line.color = Color(0.0, 0.85, 1.0) if success else Color(1.0, 0.3, 0.3)
+	var icon_vis = panel.get_node_or_null("IconVis")
+	if icon_vis and icon_vis.has_method("set_success"):
+		icon_vis.set_success(success)
+	status_label.text = status
+	status_label.add_theme_color_override("font_color", Color(0.3, 1.0, 0.6) if success else Color(1.0, 0.4, 0.4))
+	var sub_lbl = panel.get_node_or_null("SubLabel")
+	if sub_lbl:
+		sub_lbl.text = sub
+	var total_sub = panel.get_node_or_null("TotalSub")
+	if total_sub:
+		total_sub.text = total
+	for pair in [["retry", "RetryBtn", "RetryPanel"], ["next", "NextBtn", "NextPanel"], ["restart", "RestartBtn", "RestartPanel"]]:
+		var btn: Button = panel.get_node_or_null(pair[1])
+		var bg = panel.get_node_or_null(pair[2])
+		var slot = slots.get(pair[0])
+		var show = slot != null
+		if btn:
+			btn.visible = show
+			if show:
+				_rebind(btn, slot[0], slot[1])
+		if bg:
+			bg.visible = show
+	panel.visible = true
+
+func _show_new_magnet_card(key: String, vh: float) -> void:
+	var ui = get_node_or_null("UILayer")
+	if ui == null:
+		return
+	var col = Color(1.0, 0.3, 0.25) if key == "repel" else Color(0.5, 0.85, 1.0)
+	var card = Panel.new()
+	card.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	card.size = Vector2(320, 110)
+	card.position = Vector2(500, vh * 0.3 + 104)
+	var sb = StyleBoxFlat.new()
+	sb.bg_color = Color(0.03, 0.03, 0.08, 0.92)
+	sb.border_color = Color(col.r, col.g, col.b, 0.9)
+	sb.set_border_width_all(2)
+	sb.border_width_left = 5
+	sb.set_corner_radius_all(14)
+	sb.shadow_color = Color(col.r, col.g, col.b, 0.35)
+	sb.shadow_size = 14
+	card.add_theme_stylebox_override("panel", sb)
+	card.add_to_group("intro_card")
+	ui.add_child(card)
+	var spot = Node2D.new()
+	spot.position = Vector2(56, 66)
+	card.add_child(spot)
+	var mv = Node2D.new()
+	mv.set_script(load("res://scripts/MagnetVisual.gd"))
+	mv.level_color = col
+	spot.add_child(mv)
+	if key == "repel":
+		var fx = Node2D.new()
+		fx.set_script(load("res://scripts/MagnetKindFX.gd"))
+		fx.mode = "repel"
+		spot.add_child(fx)
+	var head = Label.new()
+	head.text = "✦ NEW MAGNET"
+	head.position = Vector2(110, 14)
+	head.add_theme_font_override("font", UIFont.title(3))
+	head.add_theme_font_size_override("font_size", 12)
+	head.add_theme_color_override("font_color", col)
+	card.add_child(head)
+	var name_lbl = Label.new()
+	name_lbl.text = "REPULSOR" if key == "repel" else "SLIDER"
+	name_lbl.position = Vector2(108, 30)
+	name_lbl.add_theme_font_override("font", UIFont.title(3))
+	name_lbl.add_theme_font_size_override("font_size", 26)
+	name_lbl.add_theme_color_override("font_color", Color(1, 1, 1))
+	card.add_child(name_lbl)
+	var desc = Label.new()
+	desc.text = "Hold it to get PUSHED away" if key == "repel" else "It slides on a rail. Time it!"
+	desc.position = Vector2(110, 70)
+	desc.add_theme_font_override("font", UIFont.title(1))
+	desc.add_theme_font_size_override("font_size", 11)
+	desc.add_theme_color_override("font_color", Color(0.75, 0.78, 0.9))
+	card.add_child(desc)
+	var tw = card.create_tween()
+	tw.tween_interval(1.1)
+	tw.tween_callback(func(): SoundManager.play_sfx("portal", -9.0, 1.2))
+	tw.tween_property(card, "position:x", 80.0, 0.45).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
+	tw.tween_interval(2.8)
+	tw.tween_property(card, "position:x", -340.0, 0.35).set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_IN)
+	tw.tween_callback(card.queue_free)
+	AnalyticsManager.design_event("Magnet:Debut:%s" % key)
 
 func _show_stars_animation(ui: CanvasLayer, stars: int):
 	var panel = ui.get_node_or_null("ResultPanel")
@@ -1678,6 +1997,7 @@ func _on_restart_from_beginning():
 	LevelTransition.flash_and_load("res://scenes/Level1.tscn")
 
 func _show_game_over(is_new_record: bool = false):
+	_clear_intro_cards()
 	var ui = get_node_or_null("UILayer")
 	if not ui:
 		return
@@ -1823,7 +2143,28 @@ func _show_game_over(is_new_record: bool = false):
 	)
 	panel.add_child(ad_btn)
 
+	# Coin'le devam (cüzdanda yeterli coin varsa reklamsız seçenek)
+	var price = Progress.CONTINUE_COIN_PRICE
+	if Progress.wallet() >= price:
+		var coin_btn = Button.new()
+		coin_btn.text = "or use 💰 %d coins  (you have %d)" % [price, Progress.wallet()]
+		coin_btn.size = Vector2(300, 30)
+		coin_btn.position = Vector2(90, btn_y + 70)
+		coin_btn.flat = true
+		coin_btn.focus_mode = Control.FOCUS_NONE
+		coin_btn.add_theme_font_size_override("font_size", 14)
+		coin_btn.add_theme_color_override("font_color", Color(1.0, 0.85, 0.35))
+		coin_btn.pressed.connect(func():
+			if Progress.spend(price, "Continue"):
+				coins_since_last_life = 0
+				lives = 3
+				_save_lives(3)
+				get_tree().change_scene_to_file(get_tree().current_scene.scene_file_path)
+		)
+		panel.add_child(coin_btn)
 	var ad_hint = Label.new()
+	if Progress.wallet() >= price:
+		ad_hint.visible = false
 	if total_score > 0:
 		ad_hint.text = "Watch an ad · keep your %d coins" % total_score
 	else:

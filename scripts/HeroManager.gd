@@ -64,6 +64,17 @@ func add_ad_view(id: int) -> void:
 		f.store_8(ad_progress[id])
 		f.close()
 
+# Mağazadan coin ile satın alma: reklam ilerlemesini doldurur (aynı dosya, aynı kilit mantığı)
+const COIN_PRICE := 350
+func unlock_with_coins(id: int) -> void:
+	if not AD_HEROES.has(id):
+		return
+	ad_progress[id] = ads_required(id)
+	var f = FileAccess.open(AD_HEROES[id]["file"], FileAccess.WRITE)
+	if f:
+		f.store_8(ad_progress[id])
+		f.close()
+
 func is_blaze_unlocked() -> bool:
 	return is_ad_hero_unlocked(BLAZE_ID)
 

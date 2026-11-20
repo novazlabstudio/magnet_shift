@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="utf-8"?>
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+    <!-- Android 13+ bildirim izni (çalışma anında oyuncuya sorulur; reddederse oyun aynen çalışır) -->
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
+    <application>
+        <!-- Godot v2 eklenti kayıtları: adlar Engine.get_singleton(...) ile eşleşir -->
+        <meta-data
+            android:name="org.godotengine.plugin.v2.PlayGamesV2"
+            android:value="com.novazlabstudio.services.PlayGamesPlugin" />
+        <meta-data
+            android:name="org.godotengine.plugin.v2.LocalNotify"
+            android:value="com.novazlabstudio.services.LocalNotifyPlugin" />
+        <!-- Play Games proje kimliği (Play Console > Play Games Services > Configuration) -->
+        <meta-data
+            android:name="com.google.android.gms.games.APP_ID"
+            android:value="@string/game_services_project_id" />
+        <receiver
+            android:name="com.novazlabstudio.services.NotifyReceiver"
+            android:exported="false" />
+    </application>
+</manifest>

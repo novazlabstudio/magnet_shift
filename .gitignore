@@ -10,3 +10,9 @@ android/build/
 
 # Derleme çıktısı (tools/build_aab.sh)
 build/
+
+# Android eklenti derleme girdileri (şablondan çıkarılır / yerel)
+android_plugins/*/libs/
+android_plugins/*/local.properties
+android_plugins/*/.gradle/
+android_plugins/novaz_services/src/main/res/values/strings.xml

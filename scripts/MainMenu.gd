@@ -11,6 +11,7 @@ var sound_btn: Button
 var music_player: AudioStreamPlayer = null
 
 func _ready():
+	RunMode.clear()
 	SoundManager.load_setting()
 	HeroManager.load_hero()
 		# TEST: onboarding'i her seferinde göster
@@ -84,24 +85,28 @@ func _build():
 	var top_bar = []
 	top_bar.append_array(_top_button(ui, Vector2(14, 14), 84.0, "podium", Color(1.0, 0.75, 0.0), "BOARD", func(): _show_leaderboard(ui)))
 	top_bar.append_array(_top_button(ui, Vector2(104, 14), 84.0, "trophy", Color(1.0, 0.5, 0.85), "AWARDS", func(): _show_awards(ui)))
-	top_bar.append_array(_top_button(ui, Vector2(382, 14), 84.0, "portal", Color(0.3, 1.0, 0.5), "LEVELS", func(): _show_level_select(ui)))
+	top_bar.append_array(_top_button(ui, Vector2(194, 14), 84.0, "shop", Color(0.35, 0.9, 1.0), "SHOP", func(): _show_shop(ui)))
+	top_bar.append_array(_top_button(ui, Vector2(374, 14), 84.0, "portal", Color(0.3, 1.0, 0.5), "LEVELS", func(): _show_level_select(ui)))
 	# Ses: diğer üst butonlarla aynı boyut ve çerçeve (simge + SOUND/MUTED yazısı görselin içinde)
 	var sound_vis = Node2D.new()
 	sound_vis.set_script(load("res://scripts/SoundButtonVisual.gd"))
 	sound_vis.name = "SoundVis"
 	sound_vis.style = "menu"
-	sound_vis.position = Vector2(292, 14)
+	sound_vis.position = Vector2(284, 14)
 	sound_vis.setup(SoundManager.is_on())
 	ui.add_child(sound_vis)
 	sound_btn = Button.new()
 	sound_btn.name = "SoundBtn"
 	sound_btn.size = Vector2(84, 56)
-	sound_btn.position = Vector2(292, 14)
+	sound_btn.position = Vector2(284, 14)
 	sound_btn.flat = true
 	sound_btn.focus_mode = Control.FOCUS_NONE
 	sound_btn.pressed.connect(_on_sound_toggle)
 	ui.add_child(sound_btn)
 	top_bar.append_array([sound_vis, sound_btn])
+	# Cüzdan (sağ) ve günlük ödül (sol) hapları üst çubuğun altında
+	top_bar.append_array(_build_wallet_pill(ui))
+	top_bar.append_array(_build_gift_pill(ui))
 
 	# ── Başlık: Orbitron, iki satır (süs çizgileri kaldırıldı: harflerin üstünden geçiyorlardı) ──
 	title_lbl = Label.new()
@@ -176,7 +181,7 @@ func _build():
 	# İki sıra: üstte 4 kahraman, altta reklamla açılan 3 kahraman ortalı
 	var hero_y = 414.0
 	var card_w = 104.0
-	var card_h = 116.0
+	var card_h = 106.0
 	var gap = 8.0
 	var row_gap = 8.0
 	var per_row = [4, 3]
@@ -222,7 +227,7 @@ func _build():
 			hvis.preview_hero = i
 		else:
 			hvis.set_script(_get_hero_preview_script(i))
-		hvis.position = Vector2(cx + card_w / 2, cy + 54)
+		hvis.position = Vector2(cx + card_w / 2, cy + 50)
 		if is_locked:
 			# reklamla açılanlar "vitrinde": kilitliyken de seçilebilir görünsün
 			hvis.modulate = Color(0.6, 0.6, 0.65, 0.85) if HeroManager.is_ad_hero(i) else Color(0.3, 0.3, 0.3, 0.5)
@@ -232,12 +237,12 @@ func _build():
 			# Kilit ikonu
 			var lock_lbl = Label.new()
 			lock_lbl.text = "🔒"
-			lock_lbl.position = Vector2(cx + card_w/2 - 16, cy + 30)
+			lock_lbl.position = Vector2(cx + card_w/2 - 16, cy + 24)
 			lock_lbl.add_theme_font_size_override("font_size", 28)
 			ui.add_child(lock_lbl)
 			var unlock_lbl = Label.new()
 			unlock_lbl.size = Vector2(card_w, 20)
-			unlock_lbl.position = Vector2(cx, cy + 68)
+			unlock_lbl.position = Vector2(cx, cy + 60)
 			unlock_lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 			unlock_lbl.add_theme_font_size_override("font_size", 11)
 			if HeroManager.is_ad_hero(i):
@@ -322,7 +327,7 @@ func _build():
 
 	# ── PLAY / CONTINUE ──
 	# Geri dönen oyuncu kaldığı en yüksek level'den devam eder; Level 1 için küçük NEW GAME
-	var play_y = hero_y + card_h * 2 + row_gap + 16
+	var play_y = hero_y + card_h * 2 + row_gap + 12
 	var can_continue = max_lvl > 1
 	var btn_panel = ColorRect.new()
 	btn_panel.size = Vector2(300, 72)
@@ -374,7 +379,7 @@ func _build():
 		var new_btn = Button.new()
 		new_btn.text = "↺  NEW GAME"
 		new_btn.size = Vector2(200, 40)
-		new_btn.position = Vector2(140, play_y + 82)
+		new_btn.position = Vector2(140, play_y + 130)
 		new_btn.flat = true
 		new_btn.focus_mode = Control.FOCUS_NONE
 		new_btn.add_theme_font_override("font", UIFont.title(2))
@@ -384,14 +389,18 @@ func _build():
 		new_btn.pressed.connect(_on_play)
 		ui.add_child(new_btn)
 
+	_build_mode_buttons(ui, play_y + 82, max_lvl)
+
 	# ── Uzun ekran: içerik ortalanır, üst butonlar en üstte (çentik payıyla) kalır ──
 	ScreenUtil.shift_children(ui, ScreenUtil.center_offset(self), top_bar)
 	var safe_top = ScreenUtil.safe_top(self)
 	for n in top_bar:
 		n.position.y += safe_top
 
-	# ── Onboarding (sadece ilk açılışta) ──
+	# ── Onboarding (sadece ilk açılışta); sonraki açılışlarda günlük ödül ──
 	_show_onboarding_if_needed(ui)
+	if FileAccess.file_exists("user://onboarding_done.dat") and Progress.daily_reward_state()["available"]:
+		get_tree().create_timer(0.5).timeout.connect(func(): _show_daily_reward(ui))
 
 func _show_onboarding_if_needed(ui: CanvasLayer):
 	if FileAccess.file_exists("user://onboarding_done.dat"):
@@ -1011,6 +1020,7 @@ func _show_awards(ui: CanvasLayer):
 	close_btn.add_theme_color_override("font_color", Color(1.0, 0.7, 0.9))
 	close_btn.pressed.connect(func(): overlay.queue_free())
 	overlay.add_child(close_btn)
+	_add_play_games_button(overlay, vh, "🎮 PLAY GAMES", func(): PlayGames.show_achievements())
 
 func _show_leaderboard(ui: CanvasLayer):
 	var overlay = ColorRect.new()
@@ -1109,6 +1119,24 @@ func _show_leaderboard(ui: CanvasLayer):
 	close_btn.add_theme_color_override("font_color", Color(0.7, 0.5, 1.0))
 	close_btn.pressed.connect(func(): overlay.queue_free())
 	overlay.add_child(close_btn)
+	if PlayGames.available():
+		# Global sıralama (Google Play Games): CLOSE sağa kayar, solda GLOBAL
+		for n in [close_bg, close_line, close_btn]:
+			n.position.x = 250
+		var gl_bg = ColorRect.new()
+		gl_bg.size = Vector2(200, 58)
+		gl_bg.position = Vector2(30, 560)
+		gl_bg.color = Color(0.03, 0.22, 0.12, 1.0)
+		overlay.add_child(gl_bg)
+		var gl = Button.new()
+		gl.text = "🌍 GLOBAL"
+		gl.size = Vector2(200, 58)
+		gl.position = Vector2(30, 560)
+		gl.flat = true
+		gl.add_theme_font_size_override("font_size", 22)
+		gl.add_theme_color_override("font_color", Color(0.5, 1.0, 0.6))
+		gl.pressed.connect(func(): PlayGames.show_leaderboards())
+		overlay.add_child(gl)
 	ScreenUtil.shift_children(overlay, ScreenUtil.center_offset(self))
 
 func _show_level_select(ui: CanvasLayer):
@@ -1326,6 +1354,13 @@ func _draw():
 		draw_arc(icon_c, 7, time * 2.0 + PI, time * 2.0 + PI + TAU * 0.7, 16, Color(1, 1, 1, 0.5), 1.2)
 		draw_circle(icon_c, 3.5, Color(accent.r, accent.g, accent.b, 0.7 + pulse * 0.3))
 		draw_circle(icon_c, 1.6, Color(1, 1, 1, 0.8))
+	elif icon_type == "shop":
+		# alışveriş çantası
+		draw_circle(icon_c, 9, Color(accent.r, accent.g, accent.b, 0.12 + pulse * 0.1))
+		draw_arc(icon_c + Vector2(0, -4), 4.5, PI, TAU, 10, accent, 2.0)
+		draw_colored_polygon(PackedVector2Array([icon_c + Vector2(-8, -4), icon_c + Vector2(8, -4),
+			icon_c + Vector2(9, 9), icon_c + Vector2(-9, 9)]), accent)
+		draw_circle(icon_c + Vector2(0, 3), 2.4, Color(1, 1, 1, 0.85))
 	elif icon_type == "podium":
 		# skor tablosu: 1-2-3 kürsüsü
 		draw_circle(icon_c, 9, Color(accent.r, accent.g, accent.b, 0.12 + pulse * 0.1))
@@ -1769,3 +1804,508 @@ func _draw():
 
 func _on_play():
 	LevelTransition.flash_and_load("res://scenes/Level1.tscn")
+
+# ═══ 1.3: Cüzdan, günlük ödül, modlar, mağaza ═══════════════════════════════
+
+func _pill(ui: CanvasLayer, pos: Vector2, w: float, accent: Color) -> Array:
+	var bg = Panel.new()
+	var sb = StyleBoxFlat.new()
+	sb.bg_color = Color(0.04, 0.05, 0.12, 0.92)
+	sb.border_color = Color(accent.r, accent.g, accent.b, 0.75)
+	sb.set_border_width_all(2)
+	sb.set_corner_radius_all(15)
+	bg.add_theme_stylebox_override("panel", sb)
+	bg.position = pos
+	bg.size = Vector2(w, 32)
+	bg.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	ui.add_child(bg)
+	var lbl = Label.new()
+	lbl.position = pos
+	lbl.size = Vector2(w, 32)
+	lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	lbl.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	lbl.add_theme_font_override("font", UIFont.title(1))
+	lbl.add_theme_font_size_override("font_size", 14)
+	lbl.add_theme_color_override("font_color", accent.lightened(0.2))
+	lbl.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	ui.add_child(lbl)
+	var btn = Button.new()
+	btn.position = pos
+	btn.size = Vector2(w, 32)
+	btn.flat = true
+	btn.focus_mode = Control.FOCUS_NONE
+	ui.add_child(btn)
+	return [bg, lbl, btn]
+
+func _build_wallet_pill(ui: CanvasLayer) -> Array:
+	var p = _pill(ui, Vector2(346, 78), 120, Color(1.0, 0.8, 0.25))
+	_wallet_lbl = p[1]
+	_wallet_lbl.text = "💰 %d" % Progress.wallet()
+	# Metoda bağlı: menü kapanınca Godot bağlantıyı kendisi koparır
+	Progress.wallet_changed.connect(_on_wallet_changed)
+	p[2].pressed.connect(func(): _show_shop(ui))
+	return p
+
+var _wallet_lbl: Label = null
+
+func _on_wallet_changed(v: int) -> void:
+	if not is_instance_valid(_wallet_lbl):
+		return
+	_wallet_lbl.text = "💰 %d" % v
+	_wallet_lbl.pivot_offset = Vector2(60, 16)
+	var tw = _wallet_lbl.create_tween()
+	tw.tween_property(_wallet_lbl, "scale", Vector2(1.2, 1.2), 0.1)
+	tw.tween_property(_wallet_lbl, "scale", Vector2.ONE, 0.15)
+
+func _build_gift_pill(ui: CanvasLayer) -> Array:
+	var st = Progress.daily_reward_state()
+	var p = _pill(ui, Vector2(14, 78), 120, Color(0.4, 1.0, 0.55) if st["available"] else Color(0.5, 0.55, 0.75))
+	var lbl: Label = p[1]
+	lbl.text = "🎁 DAY %d" % st["day"] if st["available"] else "🎁 ✓"
+	if st["available"]:
+		var tw = p[0].create_tween().set_loops()
+		tw.tween_property(p[0], "modulate", Color(1.3, 1.3, 1.3), 0.5)
+		tw.tween_property(p[0], "modulate", Color(1, 1, 1), 0.5)
+	p[2].pressed.connect(func(): _show_daily_reward(ui))
+	return p
+
+func _menu_toast(text: String) -> void:
+	Progress.toast("ℹ️", "", text)
+
+func _mode_button(ui: CanvasLayer, pos: Vector2, w: float, accent: Color, text: String, sub: String, locked: bool, cb: Callable) -> void:
+	var bg = ColorRect.new()
+	bg.size = Vector2(w, 44)
+	bg.position = pos
+	bg.color = Color(accent.r * 0.12, accent.g * 0.12, accent.b * 0.18, 1.0) if not locked else Color(0.06, 0.06, 0.09, 1.0)
+	ui.add_child(bg)
+	var line = ColorRect.new()
+	line.size = Vector2(w, 2)
+	line.position = pos + Vector2(0, 42)
+	line.color = Color(accent.r, accent.g, accent.b, 0.9 if not locked else 0.25)
+	ui.add_child(line)
+	var btn = Button.new()
+	btn.text = text
+	btn.size = Vector2(w, 44)
+	btn.position = pos + Vector2(0, -6 if sub != "" else 0)
+	btn.flat = true
+	btn.focus_mode = Control.FOCUS_NONE
+	btn.add_theme_font_override("font", UIFont.title(2))
+	btn.add_theme_font_size_override("font_size", 15)
+	btn.add_theme_color_override("font_color", accent if not locked else Color(0.45, 0.45, 0.55))
+	btn.pressed.connect(cb)
+	ui.add_child(btn)
+	if sub != "":
+		var s = Label.new()
+		s.text = sub
+		s.position = pos + Vector2(0, 25)
+		s.size = Vector2(w, 16)
+		s.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		s.add_theme_font_size_override("font_size", 10)
+		s.add_theme_color_override("font_color", Color(accent.r, accent.g, accent.b, 0.75) if not locked else Color(0.45, 0.45, 0.55))
+		s.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		ui.add_child(s)
+
+func _build_mode_buttons(ui: CanvasLayer, y: float, max_lvl: int) -> void:
+	var unlocked = max_lvl >= 5
+	var best = int(Progress.data["endless_best"])
+	_mode_button(ui, Vector2(90, y), 146, Color(0.75, 0.5, 1.0), "♾️ ENDLESS",
+		("BEST: STAGE %d" % best if best > 0 else "NEW MAGNETS!") if unlocked else "REACH LVL 5", not unlocked,
+		func():
+			if unlocked:
+				RunMode.start_endless()
+			else:
+				_menu_toast("Reach Level 5 to unlock Endless"))
+	var dc = Progress.daily_challenge_state()
+	var dsub = "TODAY: " + Progress.format_time(dc["best_ms"]) if dc["best_ms"] > 0 else "+%d 💰 TODAY" % Progress.DAILY_CHALLENGE_REWARD
+	_mode_button(ui, Vector2(244, y), 146, Color(1.0, 0.7, 0.25), "📅 DAILY",
+		dsub if unlocked else "REACH LVL 5", not unlocked,
+		func():
+			if unlocked:
+				RunMode.start_daily()
+			else:
+				_menu_toast("Reach Level 5 to unlock the Daily Challenge"))
+
+# ── Ortak tam ekran panel ────────────────────────────────────────────────────
+func _overlay_panel(ui: CanvasLayer, title_text: String, accent: Color) -> Dictionary:
+	var vh = ScreenUtil.viewport_height(self)
+	var top = ScreenUtil.safe_top(self)
+	var overlay = ColorRect.new()
+	overlay.set_anchors_preset(Control.PRESET_FULL_RECT)
+	overlay.color = Color(0.0, 0.0, 0.02, 0.95)
+	ui.add_child(overlay)
+	var title = Label.new()
+	title.text = title_text
+	title.position = Vector2(0, 18 + top)
+	title.size = Vector2(480, 40)
+	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	title.add_theme_font_override("font", UIFont.title(3))
+	title.add_theme_font_size_override("font_size", 26)
+	title.add_theme_color_override("font_color", accent.lightened(0.3))
+	title.add_theme_color_override("font_shadow_color", Color(accent.r * 0.5, accent.g * 0.5, accent.b * 0.5, 0.8))
+	title.add_theme_constant_override("shadow_outline_size", 8)
+	overlay.add_child(title)
+	var close_bg = ColorRect.new()
+	close_bg.size = Vector2(200, 50)
+	close_bg.position = Vector2(140, vh - 58)
+	close_bg.color = Color(accent.r * 0.2, accent.g * 0.2, accent.b * 0.25, 1.0)
+	overlay.add_child(close_bg)
+	var close_btn = Button.new()
+	close_btn.text = "✕  CLOSE"
+	close_btn.size = Vector2(200, 50)
+	close_btn.position = Vector2(140, vh - 58)
+	close_btn.flat = true
+	close_btn.focus_mode = Control.FOCUS_NONE
+	close_btn.add_theme_font_override("font", UIFont.title(2))
+	close_btn.add_theme_font_size_override("font_size", 16)
+	close_btn.add_theme_color_override("font_color", accent.lightened(0.3))
+	close_btn.pressed.connect(func(): overlay.queue_free())
+	overlay.add_child(close_btn)
+	return {"overlay": overlay, "vh": vh, "top": top}
+
+# Play Games butonu (BOARD / AWARDS panellerinin altında, CLOSE'un solunda)
+func _add_play_games_button(overlay: Control, vh: float, text: String, cb: Callable) -> void:
+	if not PlayGames.available():
+		return
+	for c in overlay.get_children():
+		if (c is ColorRect or c is Button) and c.position.y == vh - 58 and c.position.x == 140:
+			c.position.x = 250
+			c.size.x = 200
+	var bg = ColorRect.new()
+	bg.size = Vector2(200, 50)
+	bg.position = Vector2(30, vh - 58)
+	bg.color = Color(0.05, 0.25, 0.12, 1.0)
+	overlay.add_child(bg)
+	var b = Button.new()
+	b.text = text
+	b.size = Vector2(200, 50)
+	b.position = Vector2(30, vh - 58)
+	b.flat = true
+	b.focus_mode = Control.FOCUS_NONE
+	b.add_theme_font_override("font", UIFont.title(2))
+	b.add_theme_font_size_override("font_size", 15)
+	b.add_theme_color_override("font_color", Color(0.5, 1.0, 0.6))
+	b.pressed.connect(cb)
+	overlay.add_child(b)
+
+# ── Günlük ödül ──────────────────────────────────────────────────────────────
+func _show_daily_reward(ui: CanvasLayer) -> void:
+	if ui.get_node_or_null("DailyReward"):
+		return
+	var st = Progress.daily_reward_state()
+	var vh = ScreenUtil.viewport_height(self)
+	var overlay = ColorRect.new()
+	overlay.name = "DailyReward"
+	overlay.set_anchors_preset(Control.PRESET_FULL_RECT)
+	overlay.color = Color(0.0, 0.0, 0.03, 0.85)
+	ui.add_child(overlay)
+	var box_y = vh * 0.5 - 200
+	var box = Panel.new()
+	var sb = StyleBoxFlat.new()
+	sb.bg_color = Color(0.05, 0.05, 0.13, 0.98)
+	sb.border_color = Color(0.4, 1.0, 0.55, 0.8)
+	sb.set_border_width_all(2)
+	sb.set_corner_radius_all(18)
+	sb.shadow_color = Color(0.3, 1.0, 0.5, 0.25)
+	sb.shadow_size = 18
+	box.add_theme_stylebox_override("panel", sb)
+	box.position = Vector2(24, box_y)
+	box.size = Vector2(432, 400)
+	overlay.add_child(box)
+	var title = Label.new()
+	title.text = "🎁 DAILY REWARD"
+	title.position = Vector2(0, 18)
+	title.size = Vector2(432, 36)
+	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	title.add_theme_font_override("font", UIFont.title(3))
+	title.add_theme_font_size_override("font_size", 24)
+	title.add_theme_color_override("font_color", Color(0.6, 1.0, 0.7))
+	box.add_child(title)
+	var sub = Label.new()
+	sub.text = "Come back every day. Day 7: big bonus + GOLDEN trail!" if not Progress.owns_trail("golden") else "Come back every day for bigger rewards!"
+	sub.position = Vector2(0, 56)
+	sub.size = Vector2(432, 20)
+	sub.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	sub.add_theme_font_size_override("font_size", 12)
+	sub.add_theme_color_override("font_color", Color(0.75, 0.8, 0.95))
+	box.add_child(sub)
+	var cur_day = int(st["day"])
+	for i in 7:
+		var day = i + 1
+		var big = day == 7
+		var tw_ = 92.0 if not big else 192.0
+		var col_i = i % 4
+		var row_i = i / 4
+		var tx = 24 + col_i * 98
+		var ty = 92 + row_i * 104
+		if big:
+			tx = 24 + 2 * 98
+		var claimed = day < cur_day or (day == cur_day and not st["available"])
+		var today = day == cur_day and st["available"]
+		var tile = Panel.new()
+		var tsb = StyleBoxFlat.new()
+		tsb.bg_color = Color(0.1, 0.3, 0.14, 1.0) if today else (Color(0.08, 0.08, 0.14, 1.0) if not claimed else Color(0.05, 0.12, 0.08, 1.0))
+		tsb.border_color = Color(0.5, 1.0, 0.6) if today else Color(0.25, 0.3, 0.45, 0.8)
+		tsb.set_border_width_all(3 if today else 1)
+		tsb.set_corner_radius_all(12)
+		tile.add_theme_stylebox_override("panel", tsb)
+		tile.position = Vector2(tx, ty)
+		tile.size = Vector2(tw_, 94)
+		box.add_child(tile)
+		var dl = Label.new()
+		dl.text = "DAY %d" % day
+		dl.position = Vector2(0, 6)
+		dl.size = Vector2(tw_, 18)
+		dl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		dl.add_theme_font_override("font", UIFont.title(1))
+		dl.add_theme_font_size_override("font_size", 11)
+		dl.add_theme_color_override("font_color", Color(0.8, 0.85, 1.0))
+		tile.add_child(dl)
+		var al = Label.new()
+		al.text = ("✓" if claimed else "💰\n%d" % Progress.DAILY_REWARDS[i]) + ("" if not big or claimed else "  ✨")
+		al.position = Vector2(0, 26)
+		al.size = Vector2(tw_, 60)
+		al.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		al.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+		al.add_theme_font_size_override("font_size", 18 if not claimed else 30)
+		al.add_theme_color_override("font_color", Color(1.0, 0.85, 0.3) if not claimed else Color(0.5, 1.0, 0.6))
+		tile.add_child(al)
+	var amount = int(st["amount"])
+	var bot_y = 316.0
+	var close_overlay = func(): overlay.queue_free()
+	if st["available"]:
+		var claim = Button.new()
+		claim.text = "CLAIM %d" % amount
+		claim.position = Vector2(24, bot_y)
+		claim.size = Vector2(186, 56)
+		claim.focus_mode = Control.FOCUS_NONE
+		claim.add_theme_font_override("font", UIFont.title(2))
+		claim.add_theme_font_size_override("font_size", 17)
+		box.add_child(claim)
+		var dbl = Button.new()
+		dbl.text = "🎬 CLAIM x2 (%d)" % (amount * 2)
+		dbl.position = Vector2(222, bot_y)
+		dbl.size = Vector2(186, 56)
+		dbl.focus_mode = Control.FOCUS_NONE
+		dbl.add_theme_font_override("font", UIFont.title(2))
+		dbl.add_theme_font_size_override("font_size", 15)
+		dbl.add_theme_color_override("font_color", Color(0.6, 1.0, 0.6))
+		box.add_child(dbl)
+		var done = func(got: int):
+			SoundManager.play_sfx("trophy", -4.0)
+			Progress.toast("🎁", "DAILY REWARD", "+%d COINS" % got)
+			overlay.queue_free()
+			_rebuild_menu()
+		claim.pressed.connect(func(): done.call(Progress.claim_daily_reward(1)))
+		dbl.pressed.connect(func():
+			dbl.disabled = true
+			AdManager.show_rewarded_ad(func(earned: bool):
+				if earned:
+					done.call(Progress.claim_daily_reward(2))
+				else:
+					dbl.disabled = false
+					dbl.text = "Ad not ready"))
+	else:
+		var ok = Button.new()
+		ok.text = "SEE YOU TOMORROW"
+		ok.position = Vector2(76, bot_y)
+		ok.size = Vector2(280, 56)
+		ok.focus_mode = Control.FOCUS_NONE
+		ok.add_theme_font_override("font", UIFont.title(2))
+		ok.add_theme_font_size_override("font_size", 16)
+		ok.pressed.connect(close_overlay)
+		box.add_child(ok)
+	AnalyticsManager.design_event("Daily:Open")
+
+func _rebuild_menu() -> void:
+	# Menü üst çubuğundaki hap/rozetlerin güncel hâli için sahneyi yeniden kur
+	get_tree().reload_current_scene()
+
+# ── Mağaza ───────────────────────────────────────────────────────────────────
+func _show_shop(ui: CanvasLayer) -> void:
+	var accent = Color(0.35, 0.9, 1.0)
+	var p = _overlay_panel(ui, "🛍️ SHOP", accent)
+	var overlay: Control = p["overlay"]
+	var vh: float = p["vh"]
+	var top: float = p["top"]
+	var wallet_lbl = Label.new()
+	wallet_lbl.position = Vector2(0, 58 + top)
+	wallet_lbl.size = Vector2(480, 24)
+	wallet_lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	wallet_lbl.add_theme_font_override("font", UIFont.title(2))
+	wallet_lbl.add_theme_font_size_override("font_size", 16)
+	wallet_lbl.add_theme_color_override("font_color", Color(1.0, 0.85, 0.3))
+	wallet_lbl.text = "💰 %d COINS" % Progress.wallet()
+	overlay.add_child(wallet_lbl)
+	var scroll = TouchScroll.new()
+	scroll.position = Vector2(0, 90 + top)
+	scroll.size = Vector2(480, vh - 90 - top - 66)
+	overlay.add_child(scroll)
+	var root = Control.new()
+	scroll.content.add_child(root)
+	var y = 0.0
+	y = _shop_section(root, y, "TRAILS  ·  leave a mark as you fly")
+	var trails = Progress.TRAILS
+	var armed := {"id": ""}
+	var cards := []
+	var refresh := func(): pass
+	for i in trails.size():
+		var t = trails[i]
+		var cx = 18 + (i % 3) * 150
+		var cy = y + (i / 3) * 150
+		cards.append(_trail_card(root, Vector2(cx, cy), t, armed, func(): refresh.call()))
+	y += ceil(trails.size() / 3.0) * 150 + 10
+	y = _shop_section(root, y, "HEROES  ·  or unlock them with ads")
+	var hero_cols = {HeroManager.BLAZE_ID: Color(1.0, 0.45, 0.05), HeroManager.POLARIS_ID: Color(0.72, 0.42, 1.0), HeroManager.FERRO_ID: Color(1.0, 0.78, 0.2)}
+	var hi = 0
+	for hid in [HeroManager.BLAZE_ID, HeroManager.POLARIS_ID, HeroManager.FERRO_ID]:
+		cards.append(_hero_card(root, Vector2(18 + hi * 150, y), hid, hero_cols[hid], armed, func(): refresh.call()))
+		hi += 1
+	y += 170
+	root.custom_minimum_size = Vector2(480, y)
+	root.size = Vector2(480, y)
+	refresh = func():
+		wallet_lbl.text = "💰 %d COINS" % Progress.wallet()
+		for c in cards:
+			c.call()
+	refresh.call()
+	scroll._ignore_input(root)
+	overlay.tree_exited.connect(func(): if is_inside_tree(): _rebuild_menu())
+	AnalyticsManager.design_event("Shop:Open")
+
+func _shop_section(root: Control, y: float, text: String) -> float:
+	var l = Label.new()
+	l.text = text
+	l.position = Vector2(20, y)
+	l.size = Vector2(440, 22)
+	l.add_theme_font_override("font", UIFont.title(1))
+	l.add_theme_font_size_override("font_size", 12)
+	l.add_theme_color_override("font_color", Color(0.65, 0.75, 1.0, 0.9))
+	root.add_child(l)
+	return y + 28
+
+func _card_base(root: Control, pos: Vector2, h: float) -> Array:
+	var card = Panel.new()
+	var sb = StyleBoxFlat.new()
+	sb.bg_color = Color(0.06, 0.07, 0.15, 1.0)
+	sb.border_color = Color(0.25, 0.3, 0.45, 0.8)
+	sb.set_border_width_all(2)
+	sb.set_corner_radius_all(12)
+	card.add_theme_stylebox_override("panel", sb)
+	card.position = pos
+	card.size = Vector2(140, h)
+	card.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	root.add_child(card)
+	var name_lbl = Label.new()
+	name_lbl.position = Vector2(0, 6)
+	name_lbl.size = Vector2(140, 18)
+	name_lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	name_lbl.add_theme_font_override("font", UIFont.title(1))
+	name_lbl.add_theme_font_size_override("font_size", 12)
+	card.add_child(name_lbl)
+	var btn = Button.new()
+	btn.position = Vector2(10, h - 40)
+	btn.size = Vector2(120, 32)
+	btn.focus_mode = Control.FOCUS_NONE
+	btn.add_theme_font_override("font", UIFont.title(1))
+	btn.add_theme_font_size_override("font_size", 13)
+	card.add_child(btn)
+	return [card, sb, name_lbl, btn]
+
+func _trail_card(root: Control, pos: Vector2, t: Dictionary, armed: Dictionary, on_change: Callable) -> Callable:
+	var parts = _card_base(root, pos, 140)
+	var sb: StyleBoxFlat = parts[1]
+	var name_lbl: Label = parts[2]
+	var btn: Button = parts[3]
+	name_lbl.text = t["name"]
+	var id: String = t["id"]
+	if id != "none":
+		var prev = Node2D.new()
+		prev.set_script(load("res://scripts/TrailPreview.gd"))
+		prev.position = Vector2(70, 62)
+		parts[0].add_child(prev)
+		prev.setup(id)
+	else:
+		var x = Label.new()
+		x.text = "—"
+		x.position = Vector2(0, 40)
+		x.size = Vector2(140, 40)
+		x.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		x.add_theme_font_size_override("font_size", 26)
+		x.add_theme_color_override("font_color", Color(0.5, 0.5, 0.6))
+		parts[0].add_child(x)
+	btn.pressed.connect(func():
+		if Progress.owns_trail(id):
+			Progress.equip_trail(id)
+			SoundManager.play_sfx("beam_in", -10.0)
+		elif int(t["price"]) < 0:
+			_menu_toast("Claim Day 7 of the daily reward to unlock")
+		elif armed["id"] != id:
+			armed["id"] = id
+		elif Progress.buy_trail(id):
+			armed["id"] = ""
+			SoundManager.play_sfx("trophy", -4.0)
+			Progress.toast("✨", "NEW TRAIL", t["name"])
+		else:
+			armed["id"] = ""
+			_menu_toast("Not enough coins. Play levels or claim daily rewards!")
+		on_change.call())
+	return func():
+		var owned = Progress.owns_trail(id)
+		var eq = Progress.current_trail() == id
+		sb.border_color = Color(0.4, 1.0, 0.6) if eq else (Color(1.0, 0.85, 0.3) if armed["id"] == id else Color(0.25, 0.3, 0.45, 0.8))
+		name_lbl.add_theme_color_override("font_color", Color(1, 1, 1) if owned else Color(0.7, 0.75, 0.9))
+		if eq:
+			btn.text = "✓ EQUIPPED"
+		elif owned:
+			btn.text = "EQUIP"
+		elif int(t["price"]) < 0:
+			btn.text = "🎁 DAY 7"
+		elif armed["id"] == id:
+			btn.text = "TAP TO BUY"
+		else:
+			btn.text = "💰 %d" % int(t["price"])
+		btn.add_theme_color_override("font_color", Color(0.5, 1.0, 0.6) if eq else (Color(1.0, 0.85, 0.3) if not owned else Color(0.8, 0.9, 1.0)))
+
+func _hero_card(root: Control, pos: Vector2, hid: int, col: Color, armed: Dictionary, on_change: Callable) -> Callable:
+	var parts = _card_base(root, pos, 160)
+	var sb: StyleBoxFlat = parts[1]
+	var name_lbl: Label = parts[2]
+	var btn: Button = parts[3]
+	name_lbl.text = HeroManager.HERO_NAMES[hid].to_upper()
+	name_lbl.add_theme_color_override("font_color", col)
+	var hv = Node2D.new()
+	hv.set_script(load("res://scripts/PlayerVisual.gd"))
+	hv.preview_hero = hid
+	hv.position = Vector2(70, 72)
+	parts[0].add_child(hv)
+	var key = "hero%d" % hid
+	btn.pressed.connect(func():
+		if HeroManager.is_ad_hero_unlocked(hid):
+			HeroManager.save_hero(hid)
+			HeroManager.selected_hero = hid
+		elif armed["id"] != key:
+			armed["id"] = key
+		elif Progress.buy_hero(hid):
+			armed["id"] = ""
+			HeroManager.save_hero(hid)
+			HeroManager.selected_hero = hid
+			SoundManager.play_sfx("trophy", -4.0)
+			Progress.toast("🦸", "HERO UNLOCKED", HeroManager.HERO_NAMES[hid].to_upper())
+		else:
+			armed["id"] = ""
+			_menu_toast("Not enough coins. Or unlock with 3 ads from the hero card!")
+		on_change.call())
+	return func():
+		var owned = HeroManager.is_ad_hero_unlocked(hid)
+		var sel = owned and HeroManager.get_hero() == hid
+		sb.border_color = Color(0.4, 1.0, 0.6) if sel else (Color(1.0, 0.85, 0.3) if armed["id"] == key else Color(col.r, col.g, col.b, 0.5))
+		hv.modulate = Color(1, 1, 1) if owned else Color(0.75, 0.75, 0.8)
+		if sel:
+			btn.text = "✓ SELECTED"
+		elif owned:
+			btn.text = "SELECT"
+		elif armed["id"] == key:
+			btn.text = "TAP TO BUY"
+		else:
+			btn.text = "💰 %d" % HeroManager.COIN_PRICE
+		btn.add_theme_color_override("font_color", Color(0.5, 1.0, 0.6) if sel else Color(1.0, 0.85, 0.3))

@@ -1,0 +1,24 @@
+// Magnet Shift — Google Play Games (sıralama + başarımlar) ve yerel bildirimler için Godot Android eklentisi (v2).
+// Tek AAR, iki Godot singleton'ı: "PlayGamesV2" ve "LocalNotify".
+// Derleme: ../../tools/build_services.sh  ->  addons/novaz_services/bin/NovazServices-release.aar
+plugins {
+    id 'com.android.library' version '8.6.1'
+}
+
+android {
+    namespace 'com.novazlabstudio.services'
+    compileSdk 36
+    defaultConfig {
+        minSdk 24
+    }
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_17
+        targetCompatibility JavaVersion.VERSION_17
+    }
+}
+
+dependencies {
+    compileOnly files('libs/godot-lib.template_release.aar')
+    // Uygulamaya Godot export eklentisi ekliyor (addons/novaz_services/export_plugin.gd)
+    compileOnly 'com.google.android.gms:play-services-games-v2:22.1.0'
+}
