@@ -1,0 +1,4 @@
+#!/bin/zsh
+# kullanım: to <saniye> komut...
+secs=$1; shift
+perl -e 'alarm shift; exec @ARGV' "$secs" "$@"

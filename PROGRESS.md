@@ -1,6 +1,6 @@
 # Magnet Shift — Durum ve Devam Notu
 
-Son güncelleme: 2026-11-18 (Mac oturumu)
+Son güncelleme: 2026-11-20 (Mac oturumu)
 
 Bu dosya başka bir bilgisayarda devam edecek Claude oturumu için yazıldı. Önce bunu, sonra teknik kurallar için [CLAUDE.md](CLAUDE.md)'yi oku. Kullanıcıyla Türkçe konuş; oyun içi metinler her zaman İngilizce.
 
@@ -12,6 +12,20 @@ Bu dosya başka bir bilgisayarda devam edecek Claude oturumu için yazıldı. Ö
 5. **BOARD hatası:** kök neden kaydın yalnızca game over/Level 50'de yazılmasıydı. Artık her koşu tek satır, her level bitişinde güncelleniyor; eski kayıtlar taşındı.
 - Masaüstünde (Godot 4.6.3, 480x854 / 480x1040) test edildi: 50 level hatasız açılıyor, akışlar (level geçişi, retry, game over, board, Polaris kilidi) çalışıyor. **Telefonda henüz denenmedi**; sesler sentetik, cihazda dinlenmeli.
 - 1.1.0 (code 4) 2026-11-06'da **bu Mac'ten** derlenip Production'a gönderildi (isim/açıklamalar/7 ekran görüntüsü aynı incelemede). Managed publishing kapalı: onaylanınca kendiliğinden yayına girer. Sonraki yükleme `version/code=5` olmalı.
+
+## 2026-11-20 — 1.3.0 (code 8) hazırlandı — dal `v1.3` (main'e henüz birleşmedi, push yok)
+Gap analizi sonrası büyük güncelleme. Hepsi sunucusuz ve ücretsiz.
+- **Ekonomi:** cüzdan (`Progress.wallet()`, toplanan her coin girer; ilk açılışta eski `coins_total` hediye). Mağaza (üst çubukta SHOP): 8 iz (`Progress.TRAILS`, `TrailFX.gd`) + reklamlı kahramanlar 350 coin (`HeroManager.unlock_with_coins`). Game over'da 150 coin ile devam.
+- **Geri dönüş:** 7 günlük ödül takvimi (`Progress.daily_reward_state/claim_daily_reward`, x2 reklam, 7. gün GOLDEN iz), seri bonusu 3/7/14/30 gün. Yerel bildirimler (`Notifier.gd`, Level 3 bitince izin sorulur; arka plana geçince +1/+3/+7 gün hatırlatma).
+- **Modlar:** `RunMode.gd` + `scenes/Endless.tscn`. Endless Climb (3 can, stage zorlaşır) ve Daily Challenge (tarih tohumlu, herkes aynı level, süre yarışı, ilk bitiriş +40 coin). Level'ler el yapımı 50 level'in aynalanmış remix'i (çözülebilirlik korunur). Menüde Level 5'ten sonra açılır.
+- **Yeni mıknatıslar (yalnızca Endless/Daily):** REPULSOR (kırmızı, iter; `Magnet.kind="repel"`) ve SLIDER (rayda kayar; `move_dx`). Tanıtım kartı `_show_new_magnet_card`, görülenler `Progress.data.magnets_seen`.
+- **Süre:** ilk mıknatıs dokunuşundan kapıya (duraklatma düşülür); en iyi süre `Progress.best_times`; sonuç ekranında ⏱.
+- **Ödüllü reklam yerleri (tek ünite):** level sonu DOUBLE COINS, aynı level'de 3 ölümde SKIP THIS LEVEL, günlük ödül x2, Endless +1 ❤️, mevcut CONTINUE ve kahraman kilidi.
+- **Google Play Games:** `android_plugins/novaz_services` (Java; `PlayGamesV2` + `LocalNotify` singleton'ları) → `tools/build_services.sh` → `addons/novaz_services/bin/NovazServices-release.aar`. GDScript köprüsü `PlayGames.gd`; kimlikler `scripts/PlayGamesIds.gd` (**şu an boş → Play Games kapalı**). Kurulum: `docs/PLAY_GAMES_SETUP.md`. BOARD'da 🌍 GLOBAL, AWARDS'ta 🎮 PLAY GAMES (yalnızca yapılandırılınca görünür). 3 yeni ödül: shopper, endless10, daily_clear (toplam 21).
+- **Yeni izin:** yalnızca `POST_NOTIFICATIONS` (diğerleri AdMob'dan zaten vardı). Gizlilik politikası güncellendi (`~/magnet_shift_policy`, yerel commit, push yok).
+- **Mağaza:** `docs/STORE_LISTING.md` (en-US + 9 dil), görseller `~/Desktop/MagnetShift_Store_1.3.0/` (başlıklı/başlıksız ekran görüntüleri, ikon A/B, feature graphic, 37 sn tanıtım videosu .avi). Play Games görselleri `~/Desktop/MagnetShift_PlayGames/`.
+- **Test düzeneği:** `tools/test_harness/` (stub'lı kopya, senaryolar, duman testi, otopilot, video kaydı). 50 level + 28 endless stage hatasız açıldı; ekranlar ekran görüntüsüyle kontrol edildi. **Telefonda henüz denenmedi** (bildirim, Play Games, reklamlar).
+- AAB (Play Games kimliksiz deneme derlemesi): `~/Desktop/MagnetShift_1.3.0_code8.aab`. Kimlikler gelince `PlayGamesIds.gd` doldur → `build_services.sh` → `build_aab.sh` (code 8 henüz yüklenmedi, aynı kod kullanılabilir).
 
 ## 2026-11-18 — 1.2.1 (code 7): yeni GameAnalytics hesabı
 - Eski GA hesabına girilemedi (hangi maille açıldığı bilinmiyor; şifre sıfırlama mailleri gelmedi). novazlabstudio@gmail.com ile **Sign in with Google** üzerinden yeni GA hesabı açıldı: organizasyon/stüdyo `novazlab`, oyun Magnet Shift (Android, SDK "Other", store Google Play).

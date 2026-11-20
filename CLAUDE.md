@@ -47,7 +47,7 @@ GDScript'te (Godot 4) aynı fonksiyon içindeki iki ayrı lambda, dışarıdaki 
 
 ## Sürüm
 - Proje Godot 4.6 ile kaydedilmiş (`config/features` 4.6, sahnelerde `unique_id`). Mac'te `/Applications/Godot 4.6.app` (4.6.3 + şablonlar) var; `/Applications/Godot.app` 4.4.1 diğer oyunlar için, Magnet Shift'i onunla açma.
-- Play Console'a her yüklemede `export_presets.cfg` → `version/code` artırılmalı (1.0.0=1, 1.0.1=2, 1.0.2=3, 1.1.0=4, 1.2.0=5, 1.2.1=7 (code 6 yüklendi ama manifest uyarısıyla kullanılmadı); sıradaki 8).
+- Play Console'a her yüklemede `export_presets.cfg` → `version/code` artırılmalı (1.0.0=1, 1.0.1=2, 1.0.2=3, 1.1.0=4, 1.2.0=5, 1.2.1=7 (code 6 yüklendi ama manifest uyarısıyla kullanılmadı), 1.3.0=8; sıradaki 9).
 - Release keystore ve export parolaları sadece Windows PC'de; ayrıntı ve derleme komutları PROGRESS.md bölüm 5.
 
 ## Analitik
@@ -99,3 +99,10 @@ GDScript'te (Godot 4) aynı fonksiyon içindeki iki ayrı lambda, dışarıdaki 
 
 ## Mağaza Sayfası
 - Metinler `docs/STORE_LISTING.md` (başlık/kısa/uzun açıklama, karakter sınırları kontrollü). Ekran görüntüleri 1080x1920 (Play 2:1 oran sınırı: 720x1560 kabul edilmez).
+
+## 1.3 Sistemleri (ayrıntı PROGRESS.md)
+- Autoload'lar: `PlayGames` (Play Games köprüsü; eklenti/APP_ID yoksa sessiz), `Notifier` (yerel bildirim), `RunMode` (""=kampanya, "endless", "daily"). Endless/Daily `scenes/Endless.tscn` + `GameManager`; `get_level_data()` modda `RunMode.remix()` döner. Modda kampanya kaydına (skor, can, yıldız, max level, GA progression) dokunulmaz.
+- Coin: `Progress.on_coin()` hem `coins_total` hem `wallet` artırır; harcama yalnızca `Progress.spend()` ile. Yeni satın alınabilir ekleme: `Progress.TRAILS` ya da benzeri katalog + `_show_shop`.
+- Sonuç paneli butonlarını değiştirmek için `_rebind(btn, yazı, Callable)`; modlar için `_present_panel(...)`. Tanıtım kartları "intro_card" grubunda, sonuç ekranında silinir.
+- Android eklentisi değişirse `tools/build_services.sh` (AAR commit'li). Play Games kimlikleri `scripts/PlayGamesIds.gd`; APP_ID değişince AAR yeniden derlenmeli.
+- Test: `tools/test_harness/README.md` (Runner senaryoları; mağaza görüntüsü 1080x1920 ve video).
