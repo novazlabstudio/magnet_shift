@@ -2148,6 +2148,7 @@ func _show_shop(ui: CanvasLayer) -> void:
 	y = _shop_section(root, y, "FREE COINS  ·  every ad you watch pays")
 	var ad_card = _card_base(root, Vector2(18, y), 76)
 	ad_card[0].size = Vector2(444, 76)
+	ad_card[0].get_node("Hit").size = Vector2(444, 76)
 	var ad_sb: StyleBoxFlat = ad_card[1]
 	ad_sb.border_color = Color(0.4, 1.0, 0.55, 0.85)
 	ad_sb.bg_color = Color(0.04, 0.14, 0.08, 1.0)
@@ -2252,6 +2253,18 @@ func _card_base(root: Control, pos: Vector2, h: float) -> Array:
 	btn.add_theme_font_override("font", UIFont.title(1))
 	btn.add_theme_font_size_override("font_size", 13)
 	card.add_child(btn)
+	# Kartın tamamı dokunulabilir (yalnızca alttaki küçük fiyat butonu değil): görünmez,
+	# kartı kaplayan buton en sona eklenir; TouchScroll en üstteki butonu seçtiği için kazanır.
+	var hit = Button.new()
+	hit.flat = true
+	hit.focus_mode = Control.FOCUS_NONE
+	hit.position = Vector2.ZERO
+	hit.size = card.size
+	hit.name = "Hit"
+	hit.pressed.connect(func():
+		if not btn.disabled:
+			btn.pressed.emit())
+	card.add_child(hit)
 	return [card, sb, name_lbl, btn]
 
 func _trail_card(root: Control, pos: Vector2, t: Dictionary, armed: Dictionary, on_change: Callable) -> Callable:

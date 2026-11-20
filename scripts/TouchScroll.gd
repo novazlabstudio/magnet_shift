@@ -21,7 +21,7 @@ var _samples: Array = []
 # İçerik girdiyi yutmadığı için (IGNORE) butonlar kendi başına tıklanamaz; tap'i burası iletir.
 var _press_pos: Vector2 = Vector2.ZERO
 var _moved: float = 0.0
-const TAP_SLOP := 14.0
+const TAP_SLOP := 22.0
 
 const FRICTION := 4.2       # atalet sönümü (1/sn)
 const SPRING := 18.0        # uçlarda geri yaylanma

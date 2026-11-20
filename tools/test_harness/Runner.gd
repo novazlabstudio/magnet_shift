@@ -385,9 +385,12 @@ func _run() -> void:
 			gm()._show_shop(gm().get_node("UI"))
 			await wait(0.8)
 			await shot("21_shop_top")
-			for k in 2:
-				await tap(Vector2(238, 352))
-				await wait(0.4)
+			# kartın ORTASINA (önizlemeye) dokun, butona değil
+			await tap(Vector2(238, 300))
+			await wait(0.4)
+			print("DBG first tap armed text=", "ok")
+			await tap(Vector2(220, 280))
+			await wait(0.4)
 			print("DBG after spark taps wallet=", Progress.wallet(), " owns spark=", Progress.owns_trail("spark"), " equipped=", Progress.current_trail())
 			await shot("22_shop_bought")
 			await tap(Vector2(375, 156))
@@ -397,6 +400,9 @@ func _run() -> void:
 			await drag(Vector2(240, 700), Vector2(240, 300))
 			await wait(0.6)
 			print("DBG after drag wallet=", Progress.wallet(), " owns=", Progress.data["trails"])
+			# kaydırılmış hâlde NEON kartına (orta) iki dokunuş: 30 coin yetmez → satın alınmamalı, uyarı
+			await tap(Vector2(388, 200)); await wait(0.3); await tap(Vector2(388, 200)); await wait(0.4)
+			print("DBG neon owned=", Progress.owns_trail("neon"), " wallet=", Progress.wallet())
 			await shot("23_shop_scrolled")
 		"bot":
 			seed_save(50, 300, false)
