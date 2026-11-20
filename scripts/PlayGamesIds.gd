@@ -3,20 +3,37 @@ extends RefCounted
 # APP_ID boşken Play Games tamamen kapalıdır; oyun normal çalışır. APP_ID değişince
 # tools/build_services.sh yeniden çalıştırılmalı (kimlik AAR'ın içine yazılır).
 
-const APP_ID := ""
+const APP_ID := "1001577090011"
 
 # Sıralamalar (Leaderboards) — anahtar: oyundaki ad, değer: Play Console'daki kimlik (CgkI...)
 const LEADERBOARDS := {
-	"run": "",      # Best Run (bir koşuda toplanan coin) — büyük daha iyi
-	"stars": "",    # Total Stars (0-150) — büyük daha iyi
-	"endless": "",  # Endless Climb (ulaşılan stage) — büyük daha iyi
-	"daily": "",    # Daily Challenge (süre, ms) — KÜÇÜK daha iyi, biçim: Time (milliseconds)
+	"run": "CgkI25eWlZMdEAIQAw",      # Best Run (bir koşuda toplanan coin) — büyük daha iyi
+	"stars": "CgkI25eWlZMdEAIQBA",    # Total Stars (0-150) — büyük daha iyi
+	"endless": "CgkI25eWlZMdEAIQBQ",  # Endless Climb (ulaşılan stage) — büyük daha iyi
+	"daily": "CgkI25eWlZMdEAIQBg",    # Daily Challenge (süre, ms) — KÜÇÜK daha iyi, biçim: Time (milliseconds)
 }
 
 # Başarımlar — anahtar: Progress.AWARDS id'si
 const ACHIEVEMENTS := {
-	"first_clear": "", "lvl5": "", "lvl10": "", "lvl20": "", "lvl30": "", "lvl40": "", "lvl50": "",
-	"star3": "", "star3_10": "", "star3_30": "", "coins100": "", "coins500": "", "run50": "",
-	"clean5": "", "zap10": "", "streak3": "", "streak7": "", "collector": "",
-	"shopper": "", "endless10": "", "daily_clear": "",
+	"first_clear": "CgkI25eWlZMdEAIQBw",
+	"lvl5": "CgkI25eWlZMdEAIQCA",
+	"lvl10": "CgkI25eWlZMdEAIQCQ",
+	"lvl20": "CgkI25eWlZMdEAIQCg",
+	"lvl30": "CgkI25eWlZMdEAIQCw",
+	"lvl40": "CgkI25eWlZMdEAIQDA",
+	"lvl50": "CgkI25eWlZMdEAIQDQ",
+	"star3": "CgkI25eWlZMdEAIQDg",
+	"star3_10": "CgkI25eWlZMdEAIQDw",
+	"star3_30": "CgkI25eWlZMdEAIQEA",
+	"coins100": "CgkI25eWlZMdEAIQEQ",
+	"coins500": "CgkI25eWlZMdEAIQEg",
+	"run50": "CgkI25eWlZMdEAIQEw",
+	"clean5": "CgkI25eWlZMdEAIQFA",
+	"zap10": "CgkI25eWlZMdEAIQFQ",
+	"streak3": "CgkI25eWlZMdEAIQFg",
+	"streak7": "CgkI25eWlZMdEAIQFw",
+	"collector": "CgkI25eWlZMdEAIQGA",
+	"shopper": "CgkI25eWlZMdEAIQGQ",
+	"endless10": "CgkI25eWlZMdEAIQGg",
+	"daily_clear": "CgkI25eWlZMdEAIQGw",
 }
